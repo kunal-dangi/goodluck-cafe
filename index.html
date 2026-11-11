@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -41,7 +41,7 @@
       <a href="#menu" class="btn">See the menu</a>
       <a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" class="btn btn-ghost" target="_blank" rel="noopener">Get directions</a>
     </div>
-    <a href="#reviews" class="rating"><span class="stars">★★★★<span>★</span></span> 4.0 on Google · 61 reviews</a>
+    <a href="#reviews" class="rating"><span class="stars" data-g="stars">★★★★<span>★</span></span> <span data-g="rating">4.0</span> on Google · <span data-g="count">61</span> reviews</a>
   </div>
   <figure class="hero-photo">
     <img src="images/storefront.jpg" alt="Good Luck Cafe storefront lit up at night">
@@ -335,19 +335,22 @@
 
 <section id="reviews" class="reviews wrap">
   <div class="score">
-    <p class="big">4.0</p>
-    <p class="stars">★★★★<span>★</span></p>
-    <p>61 reviews on Google</p>
+    <p class="big" data-g="rating">4.0</p>
+    <p class="stars" data-g="stars">★★★★<span>★</span></p>
+    <p><span data-g="count">61</span> reviews on Google</p>
   </div>
-  <blockquote>
+  <blockquote data-g="review">
     <p>“Awesome vibe… with great food and good service.”</p>
     <cite>Google review</cite>
   </blockquote>
-  <blockquote>
+  <blockquote data-g="review">
     <p>“Chai is fab and atmosphere is also pleasingly aesthetic.”</p>
     <cite>Google review</cite>
   </blockquote>
-  <a class="all-reviews" href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" target="_blank" rel="noopener">Read all reviews on Google →</a>
+  <p class="all-reviews">
+    <a data-g="link" href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" target="_blank" rel="noopener">Read all reviews on Google →</a>
+    <a data-g="write" href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" target="_blank" rel="noopener">Write a review</a>
+  </p>
 </section>
 
 <section id="visit" class="visit">
@@ -397,6 +400,62 @@
     el.scrollIntoView({ behavior: 'smooth' });
     history.replaceState(null, '', id ? '#' + id : location.pathname);
   });
+</script>
+
+<script>
+  // Live Google rating + reviews. Fill both values to switch it on.
+  // Until then the numbers and quotes written in the page above are shown.
+  var GOOGLE_API_KEY = '';  // Maps JavaScript API key, restricted to this website
+  var GOOGLE_PLACE_ID = ''; // e.g. ChIJ...
+
+  function showGoogleReviews(p) {
+    var r = p.rating, n = p.userRatingCount;
+    if (!r) return;
+    function set(key, fn) { document.querySelectorAll('[data-g="' + key + '"]').forEach(fn); }
+    set('rating', function (el) { el.textContent = r.toFixed(1); });
+    set('count', function (el) { el.textContent = n; });
+    set('stars', function (el) {
+      var full = Math.round(r);
+      el.textContent = '★'.repeat(full);
+      var off = document.createElement('span');
+      off.textContent = '★'.repeat(5 - full);
+      el.appendChild(off);
+    });
+    if (p.googleMapsURI) set('link', function (el) { el.href = p.googleMapsURI; });
+    set('write', function (el) { el.href = 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(GOOGLE_PLACE_ID); });
+
+    // Up to 2 recent 4★+ reviews with text. Review text is untrusted: textContent only.
+    var picks = (p.reviews || []).filter(function (v) { return v.rating >= 4 && v.text; }).slice(0, 2);
+    var slots = document.querySelectorAll('[data-g="review"]');
+    picks.forEach(function (v, i) {
+      var text = v.text.length > 180 ? v.text.slice(0, 177).trim() + '…' : v.text;
+      var q = slots[i];
+      q.querySelector('p').textContent = '“' + text + '”';
+      var cite = q.querySelector('cite');
+      cite.textContent = '';
+      var who = document.createElement('a');
+      var author = v.authorAttribution || {};
+      who.textContent = author.displayName || 'Google user';
+      if (author.uri) { who.href = author.uri; who.target = '_blank'; who.rel = 'noopener'; }
+      cite.append(who, ' · ' + '★'.repeat(v.rating) + (v.relativePublishTimeDescription ? ' · ' + v.relativePublishTimeDescription : ''));
+    });
+  }
+
+  window.initGoogleReviews = async function () {
+    try {
+      var lib = await google.maps.importLibrary('places');
+      var place = new lib.Place({ id: GOOGLE_PLACE_ID, requestedLanguage: 'en' });
+      await place.fetchFields({ fields: ['rating', 'userRatingCount', 'reviews', 'googleMapsURI'] });
+      showGoogleReviews(place);
+    } catch (e) { /* keep the static reviews */ }
+  };
+
+  if (GOOGLE_API_KEY && GOOGLE_PLACE_ID) {
+    var s = document.createElement('script');
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_API_KEY) + '&loading=async&callback=initGoogleReviews';
+    s.async = true;
+    document.head.appendChild(s);
+  }
 </script>
 </body>
 </html>

@@ -144,8 +144,11 @@ nav a:hover { color: var(--red); }
 .reviews blockquote { padding: 28px; background: var(--paper); border: 1px solid var(--line); border-top: 4px solid var(--red); }
 .reviews blockquote p { font-family: "Rozha One", Georgia, serif; font-size: 1.4rem; line-height: 1.3; margin-bottom: 14px; }
 .reviews cite { font-style: normal; color: var(--muted); font-size: .88rem; }
-.all-reviews { grid-column: 2 / -1; font-weight: 600; color: var(--red); text-decoration: none; }
-.all-reviews:hover { text-decoration: underline; }
+.all-reviews { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 12px 28px; font-weight: 600; color: var(--red); }
+.all-reviews a { text-decoration: none; }
+.all-reviews a:hover { text-decoration: underline; }
+.reviews blockquote p { overflow-wrap: anywhere; }
+.reviews cite a { color: var(--ink); font-weight: 600; text-decoration: none; }
 
 /* visit */
 .visit { background: var(--paper); border-top: 1px solid var(--line); padding: 88px 0; }
