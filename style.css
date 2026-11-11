@@ -184,3 +184,9 @@ footer .small { font-size: .8rem; opacity: .7; }
   .visit { padding: 56px 0; }
   .map { min-height: 300px; }
 }
+
+@media (max-width: 420px) {
+  .logo { font-size: 1.2rem; white-space: nowrap; }
+  nav { white-space: nowrap; }
+  nav a { margin-left: 12px; font-size: .88rem; }
+}
