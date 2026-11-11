@@ -42,7 +42,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -67,14 +67,13 @@
 
 <section class="hero wrap">
   <div class="hero-text">
-    <p class="eyebrow">Parande Nagar · Dighi, Pune</p>
     <h1>Hot chai,<br>bun maska<br>&amp; good company.</h1>
     <p class="lead">A cutting chai at six in the morning, kheema pav at lunch, a long gossip over omelettes at night. Pull up a chair.</p>
     <div class="actions">
       <a href="#menu" class="btn">See the menu</a>
       <a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" class="btn btn-ghost" target="_blank" rel="noopener">Get directions</a>
     </div>
-    <a href="#reviews" class="rating"><span class="stars" data-g="stars" aria-hidden="true">★★★★<span>★</span></span> <span data-g="rating">4.0</span> on Google · <span data-g="count">61</span> reviews</a>
+    <a href="#reviews" class="rating"><span class="stars" data-g="stars" aria-hidden="true" style="--r:4"></span> <span data-g="rating">4.0</span> on Google · <span data-g="count">61</span> reviews</a>
   </div>
   <figure class="hero-photo">
     <img src="images/storefront.jpg" width="1320" height="810" fetchpriority="high" alt="Good Luck Cafe storefront lit up at night">
@@ -92,7 +91,6 @@
 <section id="menu" class="menu-section">
   <div class="wrap">
     <div class="section-head">
-      <p class="eyebrow">Served all day</p>
       <h2>The Menu</h2>
       <p class="legend"><span class="mark veg"></span> Veg <span class="mark nonveg"></span> Egg / Non-veg <span class="sep">·</span> All prices in ₹</p>
       <label class="vegonly"><input type="checkbox" id="vegonly"> Show veg only</label>
@@ -345,7 +343,6 @@
   <div class="wrap about-grid">
     <img src="images/seating.jpg" width="880" height="884" loading="lazy" alt="Tables with red check tablecloths at the cafe entrance">
     <div class="about-text">
-      <p class="eyebrow">About us</p>
       <h2>Your neighbourhood cafe in Dighi.</h2>
       <p>Red check tablecloths, bentwood chairs, an old telephone booth in the corner and a pot of chai that never really goes off the stove. Good Luck Cafe is a place to slow down, meet friends and eat well without spending much.</p>
       <p>Come early for chai and bun maska, stay for kheema pav and biryani. Nothing fancy, just honest food at fair prices.</p>
@@ -370,7 +367,7 @@
 <section id="reviews" class="reviews wrap">
   <div class="score">
     <p class="big" data-g="rating">4.0</p>
-    <p class="stars" data-g="stars" aria-hidden="true">★★★★<span>★</span></p>
+    <span class="stars stars-lg" data-g="stars" aria-hidden="true" style="--r:4"></span>
     <p><span data-g="count">61</span> reviews on Google</p>
   </div>
   <blockquote data-g="review">
@@ -390,7 +387,6 @@
 <section id="visit" class="visit">
   <div class="wrap visit-grid">
     <div class="visit-info">
-      <p class="eyebrow">Visit us</p>
       <h2>Find us in Parande Nagar.</h2>
       <address>
         Shop No 3, Rajnandini Towers, 4/5,<br>
@@ -414,12 +410,26 @@
 </section>
 
 <footer>
-  <div class="wrap">
-    <p class="logo">Good Luck <span>Cafe</span></p>
-    <p>Shop No 3, Rajnandini Towers, Parande Nagar, Dighi, Pune 411015<br>Open daily 6:00 am – 11:30 pm</p>
-    <p><a href="tel:+910000000000">+91 XXXXX XXXXX</a> · <a href="https://instagram.com/" target="_blank" rel="noopener">Instagram</a></p>
-    <p class="small">© 2026 Good Luck Cafe</p>
+  <div class="wrap foot-grid">
+    <div>
+      <p class="logo">Good Luck <span>Cafe</span></p>
+      <p>Chai, bun maska and good company in Parande Nagar, Dighi.</p>
+    </div>
+    <div>
+      <h3>Hours</h3>
+      <p>Every day<br>6:00 am – 11:30 pm</p>
+    </div>
+    <div>
+      <h3>Find us</h3>
+      <p>Shop No 3, Rajnandini Towers,<br>Parande Nagar, Dighi, Pune 411015</p>
+      <p><a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" target="_blank" rel="noopener">Get directions</a></p>
+    </div>
+    <div>
+      <h3>Contact</h3>
+      <p><a href="tel:+910000000000">+91 XXXXX XXXXX</a><br><a href="https://instagram.com/" target="_blank" rel="noopener">Instagram</a></p>
+    </div>
   </div>
+  <div class="wrap foot-base"><p>© 2026 Good Luck Cafe</p></div>
 </footer>
 
 <script>
@@ -463,13 +473,7 @@
     function set(key, fn) { document.querySelectorAll('[data-g="' + key + '"]').forEach(fn); }
     set('rating', function (el) { el.textContent = r.toFixed(1); });
     set('count', function (el) { el.textContent = n; });
-    set('stars', function (el) {
-      var full = Math.round(r);
-      el.textContent = '★'.repeat(full);
-      var off = document.createElement('span');
-      off.textContent = '★'.repeat(5 - full);
-      el.appendChild(off);
-    });
+    set('stars', function (el) { el.style.setProperty('--r', r); });
     if (p.googleMapsURI) set('link', function (el) { el.href = p.googleMapsURI; });
     set('write', function (el) { el.href = 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(GOOGLE_PLACE_ID); });
 
@@ -486,7 +490,7 @@
       var author = v.authorAttribution || {};
       who.textContent = author.displayName || 'Google user';
       if (author.uri) { who.href = author.uri; who.target = '_blank'; who.rel = 'noopener'; }
-      cite.append(who, ' · ' + '★'.repeat(v.rating) + (v.relativePublishTimeDescription ? ' · ' + v.relativePublishTimeDescription : ''));
+      cite.append(who, ' · ' + v.rating + '/5' + (v.relativePublishTimeDescription ? ' · ' + v.relativePublishTimeDescription : ''));
     });
   }
 
