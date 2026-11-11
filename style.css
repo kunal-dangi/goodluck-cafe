@@ -42,6 +42,8 @@ h2 { font-size: clamp(2rem, 4vw, 2.8rem); }
 /* info bar + header */
 .infobar { background: var(--ink); color: #f1e6d3; font-size: .82rem; letter-spacing: .02em; }
 .infobar .wrap { display: flex; justify-content: space-between; padding-top: 7px; padding-bottom: 7px; }
+.is-open::before, .is-closed::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #4cc26b; }
+.is-closed::before { background: #e0a23a; }
 
 .top { position: sticky; top: 0; z-index: 10; background: var(--cream); border-bottom: 1px solid var(--line); }
 .top .wrap { display: flex; justify-content: space-between; align-items: center; height: 68px; }
@@ -88,6 +90,17 @@ nav a:hover { color: var(--red); }
 .legend { font-size: .88rem; opacity: .9; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .legend .mark { margin-left: 10px; background-color: #fff; }
 .legend .sep { margin: 0 8px; }
+
+/* veg-only switch (pure CSS: hides egg / non-veg rows and the sections left empty) */
+.vegonly {
+  display: flex; width: fit-content; margin: 16px auto 0; align-items: center; gap: 8px; cursor: pointer;
+  padding: 7px 16px 7px 12px; border: 1px solid rgba(255,255,255,.6); border-radius: 999px; font-size: .88rem; font-weight: 500;
+}
+.vegonly input { width: 16px; height: 16px; accent-color: var(--veg); cursor: pointer; }
+.vegonly:has(:checked) { background: #fff; color: var(--veg); border-color: #fff; }
+.menu-section:has(#vegonly:checked) .cat li:has(.nonveg),
+.menu-section:has(#vegonly:checked) .cat:not(:has(.mark.veg)),
+.menu-section:has(#vegonly:checked) .jump a:is([href*="omelette"], [href$="non-veg"]) { display: none; }
 
 .jump { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 24px; scrollbar-width: none; justify-content: center; flex-wrap: wrap; }
 .jump a {
@@ -177,7 +190,8 @@ footer .small { font-size: .8rem; opacity: .7; }
   .facts { grid-template-columns: 1fr; gap: 16px; padding-bottom: 40px; }
   .facts li { padding: 2px 16px; }
   .menu-section { padding: 56px 0 64px; }
-  .jump { flex-wrap: nowrap; justify-content: flex-start; margin: 0 -16px 20px; padding: 0 16px 6px; }
+  html { scroll-padding-top: 128px; }
+  .jump { flex-wrap: nowrap; justify-content: flex-start; margin: 0 -16px 14px; padding: 10px 16px; position: sticky; top: 68px; z-index: 5; background: var(--red); }
   .menu-card { padding: 32px 20px; outline-offset: 4px; }
   .about { padding: 64px 0 48px; }
   .about-grid, .visit-grid, .reviews, .photos { grid-template-columns: 1fr; gap: 28px; }
@@ -192,4 +206,9 @@ footer .small { font-size: .8rem; opacity: .7; }
   .logo { font-size: 1.2rem; white-space: nowrap; }
   nav { white-space: nowrap; }
   nav a { margin-left: 12px; font-size: .88rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn { transition: none; }
 }
