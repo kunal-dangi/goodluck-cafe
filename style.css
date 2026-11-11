@@ -127,8 +127,14 @@ nav a:hover { color: var(--red); }
 .legend .sep { margin: 0 8px; }
 
 /* veg-only switch (pure CSS: hides egg / non-veg rows and the sections left empty) */
+.menu-tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
+.expand-all {
+  font: inherit; font-size: .88rem; font-weight: 500; color: #fff; background: transparent; cursor: pointer;
+  padding: 7px 16px; border: 1px solid rgba(255,255,255,.6); border-radius: 999px;
+}
+.expand-all:hover { background: #fff; color: var(--red); }
 .vegonly {
-  display: flex; width: fit-content; margin: 16px auto 0; align-items: center; gap: 8px; cursor: pointer;
+  display: flex; width: fit-content; margin: 0; align-items: center; gap: 8px; cursor: pointer;
   padding: 7px 16px 7px 12px; border: 1px solid rgba(255,255,255,.6); border-radius: 999px; font-size: .88rem; font-weight: 500;
 }
 .vegonly input { width: 16px; height: 16px; accent-color: var(--veg); cursor: pointer; }
@@ -145,12 +151,23 @@ nav a:hover { color: var(--red); }
 .jump a:hover { background: #fff; color: var(--red); }
 
 .menu-card { background: var(--paper); padding: 56px 48px; outline: 2px solid var(--paper); outline-offset: 6px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
-.menu { columns: 3 280px; column-gap: 56px; column-rule: 1px solid var(--line); }
-.cat { break-inside: avoid; margin-bottom: 40px; }
-.cat h3 {
-  font-family: "Rozha One", Georgia, serif; font-weight: 400; font-size: 1.35rem; color: var(--red);
-  border-bottom: 2px solid var(--ink); padding-bottom: 4px; margin-bottom: 10px;
+/* sections open on tap: a grid of headings, items only when asked for */
+.menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); column-gap: 56px; align-items: start; }
+.cat { border-bottom: 1px solid var(--line); }
+.cat summary {
+  display: flex; align-items: center; gap: 12px; padding: 16px 0; cursor: pointer; list-style: none;
+  -webkit-tap-highlight-color: transparent;
 }
+.cat summary::-webkit-details-marker { display: none; }
+.cat summary::after {
+  content: ""; flex: none; width: 9px; height: 9px; margin: 0 4px 4px 0;
+  border-right: 2px solid var(--red); border-bottom: 2px solid var(--red); rotate: 45deg; transition: rotate .2s ease-out;
+}
+.cat[open] summary::after { rotate: 225deg; margin-bottom: -4px; }
+.cat summary:hover h3 { color: var(--red-dark); }
+.cat .count { margin-left: auto; font-size: .82rem; color: var(--muted); white-space: nowrap; }
+.cat ul { padding: 2px 0 20px; }
+.cat h3 { font-family: "Rozha One", Georgia, serif; font-weight: 400; font-size: 1.35rem; line-height: 1.2; color: var(--red); }
 .cat ul { list-style: none; }
 .cat li { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; font-size: .94rem; }
 .cat .name { flex: 0 1 auto; }
@@ -298,6 +315,7 @@ footer a:hover { color: #fff; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cat summary::after { transition: none; }
   html { scroll-behavior: auto; }
   .btn { transition: none; }
 }
