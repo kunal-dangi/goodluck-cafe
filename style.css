@@ -165,7 +165,7 @@ footer .logo span { color: #f3ead9; }
 footer .small { font-size: .8rem; opacity: .7; }
 
 @media (max-width: 860px) {
-  .wrap { padding: 0 16px; }
+  .wrap { padding-left: 16px; padding-right: 16px; }
   .hide-sm { display: none; }
   nav a { margin-left: 16px; }
   .logo { font-size: 1.4rem; }
