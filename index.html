@@ -385,5 +385,18 @@
   </div>
 </footer>
 
+<script>
+  // In-page links scroll without adding history entries, so Back leaves the site.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var id = a.getAttribute('href').slice(1);
+    var el = id ? document.getElementById(id) : document.documentElement;
+    if (!el) return;
+    e.preventDefault();
+    el.scrollIntoView({ behavior: 'smooth' });
+    history.replaceState(null, '', id ? '#' + id : location.pathname);
+  });
+</script>
 </body>
 </html>
