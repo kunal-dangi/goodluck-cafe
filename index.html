@@ -27,7 +27,7 @@
     "priceRange": "₹",
     "servesCuisine": ["Cafe", "Indian"],
     "openingHours": "Mo-Su 06:00-23:30",
-    "hasMap": "https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z",
+    "hasMap": "https://maps.google.com/?cid=151841392409580694",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Shop No 3, Rajnandini Towers, 4/5, Parande Nagar, Dighi",
@@ -74,7 +74,7 @@
       <p class="lead">A cutting chai at six in the morning, kheema pav at lunch, a long gossip over omelettes at night. Pull up a chair.</p>
       <div class="actions">
         <a href="#menu" class="btn">See the menu</a>
-        <a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" class="btn btn-light" target="_blank" rel="noopener">Get directions</a>
+        <a href="https://www.google.com/maps/dir/?api=1&amp;destination=18.6195977%2C73.8746089&amp;travelmode=driving" class="btn btn-light" target="_blank" rel="noopener">Get directions</a>
       </div>
       <a href="#reviews" class="rating"><span class="stars" data-g="stars" aria-hidden="true" style="--r:4"></span> <span data-g="rating">4.0</span> on Google · <span data-g="count">61</span> reviews</a>
     </div>
@@ -395,8 +395,8 @@
     <cite>Google review</cite>
   </blockquote>
   <p class="all-reviews">
-    <a data-g="link" href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" target="_blank" rel="noopener">Read all reviews on Google →</a>
-    <a data-g="write" href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" target="_blank" rel="noopener">Write a review</a>
+    <a data-g="link" href="https://www.google.com/search?q=Goodluck+cafe+Dighi#lrd=0x3bc2c70033099bf7:0x21b72f120c61496,1,,," target="_blank" rel="noopener">Read all reviews on Google →</a>
+    <a data-g="write" href="https://www.google.com/search?q=Goodluck+cafe+Dighi#lrd=0x3bc2c70033099bf7:0x21b72f120c61496,3,,," target="_blank" rel="noopener">Write a review</a>
   </p>
 </section>
 
@@ -415,7 +415,7 @@
       </address>
       <p class="landmark">Landmark: near Pizza Hut, Dighi, off Alandi Road</p>
       <div class="visit-actions">
-        <a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" class="btn" target="_blank" rel="noopener">Get directions</a>
+        <a href="https://www.google.com/maps/dir/?api=1&amp;destination=18.6195977%2C73.8746089&amp;travelmode=driving" class="btn" target="_blank" rel="noopener">Get directions</a>
         <button type="button" class="btn btn-outline" data-copy="Shop No 3, Rajnandini Towers, 4/5, Parande Nagar, Dighi, Pimpri-Chinchwad, Maharashtra 411015">Copy address</button>
       </div>
       <dl class="details">
@@ -448,7 +448,7 @@
     <div>
       <h3>Find us</h3>
       <p>Shop No 3, Rajnandini Towers,<br>Parande Nagar, Dighi, Pune 411015</p>
-      <p><a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" target="_blank" rel="noopener">Get directions</a></p>
+      <p><a href="https://www.google.com/maps/dir/?api=1&amp;destination=18.6195977%2C73.8746089&amp;travelmode=driving" target="_blank" rel="noopener">Get directions</a></p>
     </div>
     <div>
       <h3>Contact</h3>
@@ -546,7 +546,7 @@
     set('count', function (el) { el.textContent = n; });
     set('stars', function (el) { el.style.setProperty('--r', r); });
     if (p.googleMapsURI) set('link', function (el) { el.href = p.googleMapsURI; });
-    set('write', function (el) { el.href = 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(GOOGLE_PLACE_ID); });
+    if (GOOGLE_PLACE_ID) set('write', function (el) { el.href = 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(GOOGLE_PLACE_ID); });
 
     // Up to 2 recent 4★+ reviews with text. Review text is untrusted: textContent only.
     var picks = (p.reviews || []).filter(function (v) { return v.rating >= 4 && v.text; }).slice(0, 2);
