@@ -145,7 +145,7 @@ nav a:hover { color: var(--red); }
 
 /* photos */
 .photos { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; padding-bottom: 96px; }
-.photos img { aspect-ratio: 4/3; height: auto; }
+.photos img { aspect-ratio: 4/3; height: auto; border: 6px solid #fff; box-shadow: 0 10px 30px rgba(60,30,10,.15); }
 .photos img:last-child { aspect-ratio: auto; height: 100%; object-position: top; }
 
 /* reviews */
@@ -194,9 +194,13 @@ footer .small { font-size: .8rem; opacity: .7; }
   .jump { flex-wrap: nowrap; justify-content: flex-start; margin: 0 -16px 14px; padding: 10px 16px; position: sticky; top: 68px; z-index: 5; background: var(--red); }
   .menu-card { padding: 32px 20px; outline-offset: 4px; }
   .about { padding: 64px 0 48px; }
-  .about-grid, .visit-grid, .reviews, .photos { grid-template-columns: 1fr; gap: 28px; }
+  .about-grid, .visit-grid, .reviews { grid-template-columns: 1fr; gap: 28px; }
+  /* phones: two tall framed photos side by side, like prints on a wall */
+  .photos { grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 64px; }
+  .photos img { aspect-ratio: 3/4; border-width: 4px; }
+  .photos img:first-child { object-position: 20% center; }
   .about-grid > img { aspect-ratio: 4/3; }
-  .photos img:last-child { aspect-ratio: 4/3; height: auto; }
+  .photos img:last-child { aspect-ratio: 3/4; height: auto; }
   .all-reviews { grid-column: auto; }
   .visit { padding: 56px 0; }
   .map { min-height: 300px; }
