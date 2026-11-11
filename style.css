@@ -163,25 +163,42 @@ nav a:hover { color: var(--red); }
 .mark.veg { color: var(--veg); }
 .mark.nonveg { color: var(--nonveg); }
 
-/* about */
-.about { padding: 96px 0 72px; }
-.about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
-.about-grid > img { aspect-ratio: 1; border: 6px solid #fff; box-shadow: 0 10px 30px rgba(0,0,0,.13); }
+/* about: prints pinned to the wall, then the wall's own line */
+.about { padding: 104px 0 40px; }
+.about-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 72px; align-items: center; }
 .about-text h2 { margin-bottom: 20px; }
 .about-text p { margin-bottom: 14px; max-width: 52ch; }
 
+.prints { position: relative; aspect-ratio: 1 / 1.02; }
+.print { position: absolute; margin: 0; background: #fff; padding: 10px; box-shadow: 0 14px 30px rgba(0,0,0,.18), 0 2px 4px rgba(0,0,0,.08); }
+.print img { display: block; height: auto; }
+.print::before {
+  content: ""; position: absolute; top: -12px; left: 50%; width: 86px; height: 26px; translate: -50% 0; rotate: -3deg;
+  background: rgba(228,214,184,.82); box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+.p1 { left: 0; top: 4%; width: 66%; rotate: -2.5deg; z-index: 1; }
+.p1 img { aspect-ratio: 1; }
+.p2 { right: 0; top: 0; width: 52%; rotate: 3deg; z-index: 2; }
+.p2 img { aspect-ratio: 4 / 3; object-position: 25% 70%; }
+.p2::before { left: 30%; rotate: 4deg; }
+.p3 { right: 8%; bottom: 0; width: 44%; rotate: -4deg; z-index: 3; }
+.p3 img { aspect-ratio: 1; object-position: top; }
+.p3::before { left: 64%; rotate: -6deg; }
+
 .rules {
   margin-top: 28px; background: #23201d; color: #f3ead9; padding: 22px 26px; border: 6px solid #6b4a2b;
-  max-width: 420px; transform: rotate(-1deg);
+  max-width: 420px; rotate: -1deg;
 }
 .about-text .rules-title { font-family: "Rozha One", Georgia, serif; font-size: 1.3rem; letter-spacing: .05em; margin-bottom: 8px; color: #ffd9a8; }
 .rules ol { padding-left: 20px; font-size: .95rem; }
 .rules li { padding: 2px 0; }
 
-/* photos */
-.photos { display: grid; grid-template-columns: 3fr 2fr; gap: 20px; padding-bottom: 96px; }
-.photos img { aspect-ratio: 4/3; height: auto; border: 6px solid #fff; box-shadow: 0 10px 30px rgba(0,0,0,.13); }
-.photos img:last-child { aspect-ratio: auto; height: 100%; object-position: top; }
+.wall-quote { margin-top: 112px; margin-bottom: 96px; text-align: center; }
+.wall-quote blockquote {
+  font-family: "Rozha One", Georgia, serif; color: var(--red); text-wrap: balance;
+  font-size: clamp(2.4rem, 6.2vw, 5.4rem); line-height: 1; letter-spacing: -0.01em;
+}
+.wall-quote figcaption { margin-top: 18px; color: var(--muted); font-size: .95rem; }
 
 /* reviews */
 .reviews { display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; gap: 32px; align-items: start; padding-bottom: 96px; }
@@ -198,14 +215,39 @@ nav a:hover { color: var(--red); }
 .reviews cite a { color: var(--ink); font-weight: 600; text-decoration: none; }
 
 /* visit */
-.visit { background: var(--paper); border-top: 1px solid var(--line); padding: 88px 0; }
-.visit-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 56px; align-items: stretch; }
-.visit h2 { margin-bottom: 20px; }
-address { font-style: normal; font-size: 1.05rem; margin-bottom: 24px; }
-dl { display: grid; grid-template-columns: 110px 1fr; gap: 8px 16px; margin-bottom: 32px; font-size: .95rem; }
-dt { font-weight: 600; }
-dd { color: var(--muted); }
-.map { width: 100%; min-height: 380px; border: 6px solid #fff; box-shadow: 0 10px 30px rgba(0,0,0,.1); }
+.visit { background: var(--paper); border-top: 1px solid var(--line); padding: 96px 0 104px; }
+.visit-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 64px; align-items: start; }
+.visit h2 { margin-bottom: 28px; }
+
+.signboard {
+  display: inline-block; background: var(--red); color: #fff8ec; padding: 16px 28px 18px; margin-bottom: 30px;
+  outline: 2px solid var(--red); outline-offset: 4px; box-shadow: inset 0 0 0 2px rgba(255,248,236,.85);
+}
+.sb-top { font-size: .8rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: #ffd9a8; }
+.sb-hours { font-family: "Rozha One", Georgia, serif; font-size: clamp(1.9rem, 3.4vw, 2.6rem); line-height: 1.1; white-space: nowrap; }
+.sb-hours span { color: #ffd9a8; }
+
+address { font-style: normal; font-size: 1.06rem; line-height: 1.55; margin-bottom: 10px; }
+address strong { font-weight: 600; }
+.landmark { color: var(--muted); font-size: .95rem; margin-bottom: 26px; }
+.visit-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 36px; }
+.btn-outline { background: transparent; color: var(--red); font: inherit; font-weight: 600; font-size: .95rem; cursor: pointer; }
+.btn-outline:hover { background: var(--red); color: #fff; }
+
+.details { display: grid; grid-template-columns: 110px 1fr; margin: 0; font-size: .95rem; border-top: 1px solid var(--line); }
+.details dt, .details dd { padding: 11px 0; border-bottom: 1px solid var(--line); }
+.details dt { font-weight: 600; }
+.details dd { color: var(--muted); padding-left: 16px; }
+
+.map-print { position: relative; margin: 0; background: #fff; padding: 12px 12px 14px; box-shadow: 0 16px 34px rgba(0,0,0,.16), 0 2px 4px rgba(0,0,0,.06); }
+.map-print::before, .map-print::after {
+  content: ""; position: absolute; top: -12px; width: 92px; height: 26px; background: rgba(228,214,184,.85);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08); z-index: 1;
+}
+.map-print::before { left: 22px; rotate: -6deg; }
+.map-print::after { right: 22px; rotate: 5deg; }
+.map { display: block; width: 100%; height: 460px; border: 0; }
+.map-print figcaption { padding-top: 12px; text-align: center; font-size: .85rem; color: var(--muted); }
 
 /* footer */
 footer { background: var(--ink); color: #d4c8b5; padding: 64px 0 28px; font-size: .92rem; }
@@ -233,17 +275,18 @@ footer a:hover { color: #fff; }
   html { scroll-padding-top: 128px; }
   .jump { flex-wrap: nowrap; justify-content: flex-start; margin: 0 -16px 14px; padding: 10px 16px; position: sticky; top: 68px; z-index: 5; background: var(--red); }
   .menu-card { padding: 32px 20px; outline-offset: 4px; }
-  .about { padding: 64px 0 48px; }
+  .about { padding: 64px 0 24px; }
   .about-grid, .visit-grid, .reviews { grid-template-columns: 1fr; gap: 28px; }
-  /* phones: two tall framed photos side by side, like prints on a wall */
-  .photos { grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 64px; }
-  .photos img { aspect-ratio: 3/4; border-width: 4px; }
-  .photos img:first-child { object-position: 20% center; }
-  .about-grid > img { aspect-ratio: 4/3; }
-  .photos img:last-child { aspect-ratio: 3/4; height: auto; }
-  .all-reviews { grid-column: auto; }
-  .visit { padding: 56px 0; }
-  .map { min-height: 300px; }
+  .about-grid { gap: 56px; }
+  .prints { width: calc(100% - 8px); margin: 8px auto 0; }
+  .print { padding: 7px; }
+  .print::before { width: 64px; height: 20px; top: -9px; }
+  .wall-quote { margin-top: 72px; margin-bottom: 64px; }
+  .visit { padding: 64px 0 72px; }
+  .visit-grid { gap: 48px; }
+  .signboard { padding: 14px 22px 16px; }
+  .map { height: 340px; }
+  .map-print { padding: 9px 9px 12px; }
   .foot-grid { grid-template-columns: 1fr 1fr; gap: 28px 20px; }
   .foot-grid > :first-child { grid-column: 1 / -1; }
 }

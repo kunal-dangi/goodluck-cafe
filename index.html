@@ -42,7 +42,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -351,7 +351,11 @@
 
 <section id="about" class="about">
   <div class="wrap about-grid">
-    <img src="images/seating.jpg" width="880" height="884" loading="lazy" alt="Tables with red check tablecloths at the cafe entrance">
+    <div class="prints">
+      <figure class="print p1"><img src="images/seating.jpg" width="880" height="884" loading="lazy" alt="Tables with red check tablecloths at the cafe entrance"></figure>
+      <figure class="print p2"><img src="images/tea-wall.jpg" width="1320" height="810" loading="lazy" alt="Wall reading Maybe tea is addicted to me"></figure>
+      <figure class="print p3"><img src="images/telephone.jpg" width="880" height="884" loading="lazy" alt="Vintage telephone booth inside the cafe"></figure>
+    </div>
     <div class="about-text">
       <h2>Your neighbourhood cafe in Dighi.</h2>
       <p>Red check tablecloths, bentwood chairs, an old telephone booth in the corner and a pot of chai that never really goes off the stove. Good Luck Cafe is a place to slow down, meet friends and eat well without spending much.</p>
@@ -367,11 +371,10 @@
       </div>
     </div>
   </div>
-</section>
-
-<section class="photos wrap">
-  <img src="images/tea-wall.jpg" width="1320" height="810" loading="lazy" alt="Wall reading Maybe tea is addicted to me">
-  <img src="images/telephone.jpg" width="880" height="884" loading="lazy" alt="Vintage telephone booth inside the cafe">
+  <figure class="wall-quote wrap">
+    <blockquote>Maybe tea is addicted to&nbsp;me.</blockquote>
+    <figcaption>Written on our wall, and we mean it.</figcaption>
+  </figure>
 </section>
 
 <section id="reviews" class="reviews wrap">
@@ -398,24 +401,34 @@
   <div class="wrap visit-grid">
     <div class="visit-info">
       <h2>Find us in Parande Nagar.</h2>
+      <div class="signboard">
+        <p class="sb-top">Open every day</p>
+        <p class="sb-hours">6 am <span>–</span> 11:30 pm</p>
+      </div>
       <address>
-        Shop No 3, Rajnandini Towers, 4/5,<br>
-        Parande Nagar, Dighi,<br>
-        Pimpri-Chinchwad, Maharashtra 411015
+        <strong>Shop No 3, Rajnandini Towers, 4/5,</strong><br>
+        Parande Nagar, Dighi, Pimpri-Chinchwad,<br>
+        Maharashtra 411015
       </address>
-      <dl>
-        <dt>Hours</dt><dd>Every day, 6:00 am – 11:30 pm</dd>
+      <p class="landmark">Landmark: near Pizza Hut, Dighi, off Alandi Road</p>
+      <div class="visit-actions">
+        <a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" class="btn" target="_blank" rel="noopener">Get directions</a>
+        <button type="button" class="btn btn-outline" data-copy="Shop No 3, Rajnandini Towers, 4/5, Parande Nagar, Dighi, Pimpri-Chinchwad, Maharashtra 411015">Copy address</button>
+      </div>
+      <dl class="details">
         <dt>Services</dt><dd>Dine-in · Drive-through · No-contact delivery</dd>
         <dt>Plus code</dt><dd>JV9F+RR Pimpri-Chinchwad</dd>
         <dt>Phone</dt><dd><a href="tel:+910000000000">+91 XXXXX XXXXX</a></dd>
         <dt>Email</dt><dd><a href="mailto:yourname@example.com">yourname@example.com</a></dd>
         <dt>Instagram</dt><dd><a href="https://instagram.com/" target="_blank" rel="noopener">@your_instagram</a></dd>
       </dl>
-      <a href="https://www.google.com/maps/place/Goodluck+cafe+Dighi/@18.6195977,73.8746089,19z" class="btn" target="_blank" rel="noopener">Get directions</a>
     </div>
-    <iframe class="map" title="Map showing Good Luck Cafe, Dighi"
-      src="https://www.google.com/maps?q=18.6195977,73.8746089&amp;z=17&amp;output=embed"
-      loading="lazy"></iframe>
+    <figure class="map-print">
+      <iframe class="map" title="Map showing Good Luck Cafe, Dighi"
+        src="https://www.google.com/maps?q=18.6195977,73.8746089&amp;z=17&amp;output=embed"
+        loading="lazy"></iframe>
+      <figcaption>Shop No 3, Rajnandini Towers · Dighi</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -453,6 +466,21 @@
     e.preventDefault();
     el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     history.replaceState(null, '', id ? '#' + id : location.pathname);
+  });
+</script>
+
+<script>
+  // Copy address button
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    var label = btn.textContent;
+    btn.addEventListener('click', function () {
+      if (!navigator.clipboard) { btn.textContent = 'Copy not supported'; return; }
+      navigator.clipboard.writeText(btn.dataset.copy).then(function () {
+        btn.textContent = 'Address copied';
+      }, function () {
+        btn.textContent = 'Could not copy';
+      }).finally(function () { setTimeout(function () { btn.textContent = label; }, 2200); });
+    });
   });
 </script>
 
