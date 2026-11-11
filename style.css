@@ -228,7 +228,7 @@ nav a:hover { color: var(--red); }
 .all-reviews { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 12px 28px; font-weight: 600; color: var(--red); }
 .all-reviews a { text-decoration: none; }
 .all-reviews a:hover { text-decoration: underline; }
-.reviews blockquote p { overflow-wrap: anywhere; }
+.reviews blockquote p { overflow-wrap: break-word; }
 .reviews cite a { color: var(--ink); font-weight: 600; text-decoration: none; }
 
 /* visit */
@@ -294,6 +294,13 @@ footer a:hover { color: #fff; }
   .menu-card { padding: 32px 20px; outline-offset: 4px; }
   .about { padding: 64px 0 24px; }
   .about-grid, .visit-grid, .reviews { grid-template-columns: 1fr; gap: 28px; }
+  .reviews { gap: 20px; padding-bottom: 72px; }
+  .all-reviews { grid-column: auto; margin-top: 4px; }
+  .score { display: grid; grid-template-columns: auto 1fr; column-gap: 20px; align-items: center; text-align: left; padding: 20px 24px; }
+  .score .big { grid-row: span 2; font-size: 3.4rem; }
+  .score .stars-lg { margin: 0; align-self: end; }
+  .score p:last-child { align-self: start; }
+  .reviews blockquote { padding: 24px; }
   .about-grid { gap: 56px; }
   .prints { width: calc(100% - 8px); margin: 8px auto 0; }
   .print { padding: 7px; }
