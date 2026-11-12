@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-  <link rel="stylesheet" href="order.css?v=8">
+  <link rel="stylesheet" href="order.css?v=9">
 </head>
 <body>
 
@@ -111,13 +111,15 @@
     <section class="pay" id="payBox" aria-labelledby="payTitle" hidden>
       <h2 id="payTitle">Pay by UPI</h2>
       <p id="payLead"></p>
-      <div class="pay-apps" id="payApps">
-        <p class="pay-pick">Pay <b class="money" id="payAmt"></b> with</p>
-        <a class="pay-app" id="payGpay" href="#">Google Pay</a>
-        <a class="pay-app" id="payPhonepe" href="#">PhonePe</a>
-        <a class="pay-app" id="payPaytm" href="#">Paytm</a>
-        <a class="pay-app" id="payLink" href="#">Other UPI app</a>
-      </div>
+      <fieldset class="pay-apps" id="payApps">
+        <legend>Choose your UPI app</legend>
+        <label class="pay-opt"><input type="radio" name="upiApp" value="gpay"><span class="pay-dot" style="background:#1a73e8"></span>Google Pay</label>
+        <label class="pay-opt"><input type="radio" name="upiApp" value="phonepe"><span class="pay-dot" style="background:#5f259f"></span>PhonePe</label>
+        <label class="pay-opt"><input type="radio" name="upiApp" value="paytm"><span class="pay-dot" style="background:#00baf2"></span>Paytm</label>
+        <label class="pay-opt"><input type="radio" name="upiApp" value="other"><span class="pay-dot" style="background:#8a7f76"></span>Other UPI app</label>
+      </fieldset>
+      <a class="btn pay-btn" id="payGo" href="#">Pay</a>
+      <p class="pay-fallback" id="payFallback" hidden>Didn't open? The app may not be on this phone. Pick another one, or scan the QR code below from any UPI app.</p>
       <div class="pay-qr">
         <div id="payQr" class="qr" role="img" aria-label="UPI QR code"></div>
         <p class="pay-scan" id="payScan">Scan with any UPI app</p>
@@ -154,6 +156,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=17"></script>
+<script src="order.js?v=18"></script>
 </body>
 </html>

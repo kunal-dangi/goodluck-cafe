@@ -146,14 +146,20 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .pay { margin-top: 18px; padding: 18px; background: #fff; border: 1.5px solid var(--line); border-radius: 16px; text-align: center; }
 .pay h2 { font-size: 1.4rem; }
 .pay > p { color: var(--muted); font-size: .92rem; margin: 4px 0 0; }
-.pay-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-.pay-apps[hidden] { display: none; }
-.pay-apps .pay-pick { grid-column: 1 / -1; margin: 0 0 2px; color: var(--muted); font-size: .92rem; }
-.pay-apps .pay-pick b { color: var(--ink); }
-.pay-app { display: flex; align-items: center; justify-content: center; min-height: 52px; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 14px;
-  background: #fff; color: var(--ink); font-weight: 700; text-decoration: none; }
-.pay-app:hover, .pay-app:focus-visible { border-color: #1d6b3a; color: #1d6b3a; }
-.pay-app:active { background: #e3f3e7; }
+.pay-apps { margin: 14px 0 0; padding: 0; border: 0; text-align: left; }
+.pay-apps legend { padding: 0; margin-bottom: 8px; font-weight: 700; font-size: .95rem; }
+.pay-opt { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 14px; border: 1.5px solid var(--line); border-radius: 14px;
+  background: #fff; font-weight: 600; cursor: pointer; }
+.pay-opt + .pay-opt { margin-top: 8px; }
+.pay-opt input { width: 20px; height: 20px; margin: 0; accent-color: #1d6b3a; }
+.pay-opt:has(input:checked) { border-color: #1d6b3a; background: #f1f9f3; }
+.pay-opt:has(input:focus-visible) { outline: 2px solid #1d6b3a; outline-offset: 2px; }
+.pay-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.pay-btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 56px; margin-top: 12px; border-radius: 14px; font-size: 1.08rem;
+  background: #1d6b3a; border-color: #1d6b3a; color: #fff; }
+.pay-btn:hover { background: #155a2f; border-color: #155a2f; }
+.pay-btn[hidden] { display: none; }
+.pay-fallback { margin: 8px 0 0; font-size: .85rem; color: #5a3a00; background: #fff1d6; border-radius: 10px; padding: 8px 10px; text-align: left; }
 .pay-qr { margin-top: 16px; text-align: center; }
 .pay-qr .qr { width: 220px; height: 220px; margin: 0 auto 6px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
 .pay-qr .qr img, .pay-qr .qr canvas { width: 100% !important; height: 100% !important; }

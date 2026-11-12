@@ -374,8 +374,36 @@
     return 'upi://pay?pa=' + encodeURIComponent(u.id) + '&pn=' + encodeURIComponent(u.name) + '&am=' + Number(o.total).toFixed(2) +
       '&cu=INR&tn=' + encodeURIComponent(note);
   }
+  // Amazon-style "choose your UPI app". Each app has its own link, so the chosen app opens with the amount filled in
+  // (a plain upi:// link opens whatever the phone set as default). On a computer there are no UPI apps, so the choice
+  // tells them which app to scan the QR code with.
+  var UPI_APPS = { gpay: ['Google Pay', 'tez://upi/pay'], phonepe: ['PhonePe', 'phonepe://pay'], paytm: ['Paytm', 'paytmmp://pay'], other: ['your UPI app', 'upi://pay'] };
+  function renderPayChoice(o) {
+    var pick = store.get('glc-upi-app', 'gpay'); if (!UPI_APPS[pick]) pick = 'gpay';
+    document.querySelectorAll('input[name=upiApp]').forEach(function (r) { r.checked = r.value === pick; });
+    var app = UPI_APPS[pick], link = upiLink(o);
+    $('payGo').hidden = !PHONE;
+    $('payGo').href = app[1] + link.slice(link.indexOf('?'));
+    $('payGo').textContent = 'Pay ' + rupees(o.total) + (pick === 'other' ? ' with UPI' : ' with ' + app[0]);
+    $('payScan').textContent = PHONE ? 'Paying from another phone? Scan this. Or screenshot it and open it from your UPI app\'s scanner.'
+                                     : 'Open ' + app[0] + ' on your phone and scan this code. ' + rupees(o.total) + ' is filled in for you.';
+  }
+  document.querySelectorAll('input[name=upiApp]').forEach(function (r) {
+    r.addEventListener('change', function () {
+      store.set('glc-upi-app', r.value); $('payFallback').hidden = true;
+      if (lastPayOrder) renderPayChoice(lastPayOrder);
+    });
+  });
+  var lastPayOrder = null;
+  // If the page is still on screen a moment after tapping Pay, the app probably isn't installed.
+  $('payGo').addEventListener('click', function () {
+    var left = false, mark = function () { left = true; };
+    document.addEventListener('visibilitychange', mark, { once: true }); window.addEventListener('pagehide', mark, { once: true });
+    setTimeout(function () { if (!left && document.visibilityState === 'visible') $('payFallback').hidden = false; }, 2500);
+  });
   function renderPay(o) {
     var box = $('payBox'), state = $('payState'), u = menu.upi;
+    lastPayOrder = o;
     var payable = o.status !== 'pending' && o.status !== 'cancelled';
     state.hidden = true; state.className = 'pay-state';
     if (o.paidAt) {
@@ -390,14 +418,9 @@
       if (!box.hidden) {
         var table = !o.kind || o.kind === 'table';
         $('payLead').textContent = 'Pay ' + rupees(o.total) + ' straight to ' + u.name + '. ' + (table ? 'You can also pay at the counter.' : 'Or pay in cash ' + (o.kind === 'delivery' ? 'on delivery.' : 'at pickup.'));
-        var link = upiLink(o), q = link.slice(link.indexOf('?'));
-        // Each app's own link, so the customer picks the app (a plain upi:// link opens whatever the phone set as default).
-        $('payGpay').href = 'tez://upi/pay' + q; $('payPhonepe').href = 'phonepe://pay' + q; $('payPaytm').href = 'paytmmp://pay' + q; $('payLink').href = link;
-        $('payAmt').textContent = rupees(o.total);
-        $('payApps').hidden = !PHONE;
+        var link = upiLink(o);
         $('payQr').parentNode.classList.toggle('small', PHONE);
-        $('payScan').textContent = PHONE ? 'Paying from another phone? Scan this. Or screenshot it and open it from your UPI app\'s scanner.'
-                                         : 'Scan with GPay, PhonePe, Paytm or any UPI app';
+        renderPayChoice(o);
         $('payId').textContent = u.id;
         if ($('payQr').dataset.link !== link && window.QRCode) {
           $('payQr').dataset.link = link; $('payQr').replaceChildren();
