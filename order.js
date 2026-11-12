@@ -368,6 +368,7 @@
   // ---------- pay by UPI ----------
   // The UPI app opens with the cafe's ID, the amount and the order number. The receptionist confirms the money arrived.
   var lastClaim = {}; // order id -> was waiting for confirmation (to notice "not received")
+  var PHONE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   function upiLink(o) {
     var u = menu.upi, note = 'Order ' + o.id + (o.kind === 'delivery' ? ' delivery' : o.kind === 'pickup' ? ' pickup' : ' Table ' + o.table);
     return 'upi://pay?pa=' + encodeURIComponent(u.id) + '&pn=' + encodeURIComponent(u.name) + '&am=' + Number(o.total).toFixed(2) +
@@ -389,10 +390,19 @@
       if (!box.hidden) {
         var table = !o.kind || o.kind === 'table';
         $('payLead').textContent = 'Pay ' + rupees(o.total) + ' straight to ' + u.name + '. ' + (table ? 'You can also pay at the counter.' : 'Or pay in cash ' + (o.kind === 'delivery' ? 'on delivery.' : 'at pickup.'));
-        $('payLink').href = upiLink(o);
-        $('payLink').textContent = 'Pay ' + rupees(o.total) + ' with UPI';
+        var link = upiLink(o), q = link.slice(link.indexOf('?'));
+        // Each app's own link, so the customer picks the app (a plain upi:// link opens whatever the phone set as default).
+        $('payGpay').href = 'tez://upi/pay' + q; $('payPhonepe').href = 'phonepe://pay' + q; $('payPaytm').href = 'paytmmp://pay' + q; $('payLink').href = link;
+        $('payAmt').textContent = rupees(o.total);
+        $('payApps').hidden = !PHONE;
+        $('payQr').parentNode.classList.toggle('small', PHONE);
+        $('payScan').textContent = PHONE ? 'Paying from another phone? Scan this. Or screenshot it and open it from your UPI app\'s scanner.'
+                                         : 'Scan with GPay, PhonePe, Paytm or any UPI app';
         $('payId').textContent = u.id;
-        if ($('payQr').dataset.link !== upiLink(o)) { $('payQr').dataset.link = upiLink(o); $('payQr').replaceChildren(); $('payQrBox').open = false; }
+        if ($('payQr').dataset.link !== link && window.QRCode) {
+          $('payQr').dataset.link = link; $('payQr').replaceChildren();
+          new QRCode($('payQr'), { text: link, width: 400, height: 400, colorDark: '#1f1a17', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+        }
         if (lastClaim[o.id]) $('payMsg').replaceChildren(el('p', { class: 'notice warn', text: 'The cafe couldn\'t find your payment yet. If money left your account, show the receipt at the counter; otherwise try again or pay at the counter.' }));
         else $('payMsg').replaceChildren();
       } else if (u && o.status === 'pending') {
@@ -403,11 +413,6 @@
     lastClaim[o.id] = !!o.payClaimedAt && !o.paidAt;
     return !!o.payClaimedAt && !o.paidAt; // still waiting: keep checking
   }
-  $('payQrBox').addEventListener('toggle', function () {
-    var box = $('payQr');
-    if (!this.open || box.childElementCount || !window.QRCode) return;
-    new QRCode(box, { text: box.dataset.link, width: 400, height: 400, colorDark: '#1f1a17', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-  });
   $('paidBtn').addEventListener('click', function () {
     var btn = this; btn.disabled = true;
     api('/api/orders/' + current.id + '/paid?t=' + encodeURIComponent(current.token), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })

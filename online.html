@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-  <link rel="stylesheet" href="order.css?v=5">
+  <link rel="stylesheet" href="order.css?v=6">
 </head>
 <body data-mode="online">
 
@@ -112,13 +112,18 @@
     <section class="pay" id="payBox" aria-labelledby="payTitle" hidden>
       <h2 id="payTitle">Pay by UPI</h2>
       <p id="payLead"></p>
-      <a class="btn pay-btn" id="payLink" href="#">Pay with UPI</a>
-      <p class="pay-apps">GPay · PhonePe · Paytm · BHIM · any UPI app</p>
-      <details class="pay-qr" id="payQrBox">
-        <summary>Paying from another phone? Show QR code</summary>
-        <div id="payQr" class="qr"></div>
+      <div class="pay-apps" id="payApps">
+        <p class="pay-pick">Pay <b class="money" id="payAmt"></b> with</p>
+        <a class="pay-app" id="payGpay" href="#">Google Pay</a>
+        <a class="pay-app" id="payPhonepe" href="#">PhonePe</a>
+        <a class="pay-app" id="payPaytm" href="#">Paytm</a>
+        <a class="pay-app" id="payLink" href="#">Other UPI app</a>
+      </div>
+      <div class="pay-qr">
+        <div id="payQr" class="qr" role="img" aria-label="UPI QR code"></div>
+        <p class="pay-scan" id="payScan">Scan with any UPI app</p>
         <p class="pay-id">UPI ID: <b id="payId"></b></p>
-      </details>
+      </div>
       <button class="btn btn-quiet paid-btn" id="paidBtn" type="button">I've paid</button>
       <div id="payMsg" aria-live="polite"></div>
     </section>
@@ -145,6 +150,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=15"></script>
+<script src="order.js?v=16"></script>
 </body>
 </html>
