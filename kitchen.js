@@ -32,12 +32,12 @@
   function showLogin() {
     if (stream) { stream.close(); stream = null; }
     $('app').hidden = true; $('login').hidden = false;
-    ['today', 'live', 'sound', 'logout'].forEach(function (id) { $(id).hidden = true; });
+    ['today', 'live', 'sound', 'logout', 'boardLink'].forEach(function (id) { $(id).hidden = true; });
     $('password').focus();
   }
   function showApp() {
     $('login').hidden = true; $('app').hidden = false;
-    ['today', 'live', 'sound', 'logout'].forEach(function (id) { $(id).hidden = false; });
+    ['today', 'live', 'sound', 'logout', 'boardLink'].forEach(function (id) { $(id).hidden = false; });
     connect();
   }
   $('loginForm').addEventListener('submit', function (e) {
@@ -168,7 +168,7 @@
       $('c-' + s).replaceChildren(...(list.length ? list.map(function (o) { return ticket(o, o.id === freshId); }) : [el('p', { class: 'empty', text: EMPTY[s] })]));
     });
     var waiting = [...orders.values()].filter(function (o) { return o.status === 'new' || o.status === 'pending'; }).length;
-    document.title = (waiting ? '(' + waiting + ') ' : '') + 'Kitchen · Good Luck Cafe';
+    document.title = (waiting ? '(' + waiting + ') ' : '') + (document.body.classList.contains('board-only') ? 'Kitchen board' : 'Kitchen') + ' · Good Luck Cafe';
     $('today').replaceChildren('Today: ', el('b', { text: servedToday + ' served' }), ' · ', el('b', { class: 'money', text: rupees(takings) }));
   }
   function upsert(o) {
@@ -246,5 +246,11 @@
     if (!$('app').hidden) renderTables(); // joining countdown
   }, 30000);
 
+  // ?view=board shows only New / Preparing / Ready (a kitchen screen); the full page is for the receptionist.
+  if (new URLSearchParams(location.search).get('view') === 'board') {
+    document.body.classList.add('board-only');
+    $('pageTitle').textContent = 'Kitchen board';
+    document.title = 'Kitchen board · Good Luck Cafe';
+  }
   fetch('/api/staff/me').then(function (r) { if (r.ok) showApp(); else showLogin(); }, function () { showLogin(); error('Can\'t reach the order server.'); });
 })();

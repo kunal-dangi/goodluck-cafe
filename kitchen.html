@@ -119,13 +119,17 @@
     .tile .ghost { background: transparent; color: var(--muted); border-color: var(--line); }
     .tile .ghost:hover { color: var(--red); border-color: var(--red); background: transparent; }
     @media (max-width: 900px) { .board { grid-template-columns: 1fr; } }
+    /* ?view=board: only the order board, for a screen in the kitchen */
+    .board-only .approvals, .board-only .tables-panel, .board-only .activity, .board-only #boardLink { display: none !important; }
+    .board-only .board { padding-top: 22px; }
   </style>
 </head>
 <body>
 
 <header class="top">
   <span class="brand"><img src="images/logo.jpg" width="150" height="150" alt=""><span>Good Luck <b>Cafe</b></span></span>
-  <h1>Kitchen</h1>
+  <h1 id="pageTitle">Kitchen</h1>
+  <a class="logout" id="boardLink" href="kitchen.html?view=board" target="_blank" rel="noopener" hidden>Kitchen board ↗</a>
   <span class="today" id="today" hidden></span>
   <span class="live" id="live" hidden>Connecting…</span>
   <button class="sound" id="sound" type="button" aria-pressed="false" hidden>Turn sound on</button>
@@ -172,6 +176,6 @@
 </details>
 </div>
 
-<script src="kitchen.js?v=10"></script>
+<script src="kitchen.js?v=11"></script>
 </body>
 </html>
