@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="app.css?v=2">
   <style>
     body { background: #ece3d3; min-height: 100vh; }
     .top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 12px 20px; background: var(--ink); color: #f3ead9; }
@@ -53,6 +53,38 @@
     .ticket[data-status="ready"] .go { background: var(--ok); border-color: var(--ok); }
 
     .err { margin: 18px 20px 0; }
+    .logout { min-height: 38px; padding: 0 12px; border: 0; background: none; color: #d4c8b5; text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
+
+    /* login */
+    .login { max-width: 360px; margin: 12vh auto 0; padding: 30px 26px; background: var(--paper); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.12); text-align: center; }
+    .login img { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 12px; }
+    .login h1 { font-size: 1.7rem; margin-bottom: 4px; }
+    .login p { color: var(--muted); font-size: .92rem; }
+    .login form { display: grid; gap: 12px; margin-top: 20px; text-align: left; }
+    .login label { display: grid; gap: 6px; font-weight: 600; font-size: .9rem; }
+    .login input { height: 46px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; }
+    .login input:focus { outline: none; border-color: var(--ink); }
+
+    /* tables panel */
+    .tables-panel { margin: 18px 20px 0; padding: 16px; background: var(--paper); border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+    .tp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .tp-head h2 { font-size: 1.4rem; }
+    .tp-head p { color: var(--muted); font-size: .88rem; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+    .tile { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fff; display: grid; gap: 6px; align-content: start; }
+    .tile.open { border-color: var(--ok); background: #f1f8f1; }
+    .tile-top { display: flex; align-items: baseline; justify-content: space-between; }
+    .tile-num { font-family: "Rozha One", Georgia, serif; font-size: 1.5rem; line-height: 1; }
+    .tile-state { font-size: .78rem; font-weight: 600; color: var(--muted); }
+    .tile.open .tile-state { color: #126128; }
+    .tile-pin { font-size: .8rem; color: var(--muted); }
+    .tile-pin b { display: block; font-size: 1.45rem; letter-spacing: .14em; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .tile-bill { font-size: .85rem; color: var(--muted); }
+    .tile .btn { min-height: 38px; padding: 0 10px; font-size: .88rem; border-radius: 8px; }
+    .tile-actions { display: flex; gap: 6px; }
+    .tile-actions .btn { flex: 1; }
+    .tile .ghost { background: transparent; color: var(--muted); border-color: var(--line); }
+    .tile .ghost:hover { color: var(--red); border-color: var(--red); background: transparent; }
     @media (max-width: 900px) { .board { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -61,135 +93,41 @@
 <header class="top">
   <span class="brand"><img src="images/logo.jpg" width="150" height="150" alt=""><span>Good Luck <b>Cafe</b></span></span>
   <h1>Kitchen</h1>
-  <span class="today" id="today"></span>
-  <span class="live" id="live">Connecting…</span>
-  <button class="sound" id="sound" type="button" aria-pressed="false">Turn sound on</button>
+  <span class="today" id="today" hidden></span>
+  <span class="live" id="live" hidden>Connecting…</span>
+  <button class="sound" id="sound" type="button" aria-pressed="false" hidden>Turn sound on</button>
+  <button class="logout" id="logout" type="button" hidden>Log out</button>
 </header>
 
+<section class="login" id="login" hidden>
+  <img src="images/logo.jpg" width="150" height="150" alt="">
+  <h1>Staff login</h1>
+  <p>Kitchen screen and table controls.</p>
+  <form id="loginForm">
+    <label>Password <input id="password" type="password" autocomplete="current-password" required></label>
+    <div id="loginErr"></div>
+    <button class="btn" type="submit">Log in</button>
+  </form>
+</section>
+
+<div id="app" hidden>
 <div id="err"></div>
+
+<section class="tables-panel" aria-labelledby="tablesTitle">
+  <div class="tp-head">
+    <h2 id="tablesTitle">Tables</h2>
+    <p>Open a table when guests sit down and tell them its PIN. Close it when they leave and pay.</p>
+  </div>
+  <div class="tiles" id="tiles"></div>
+</section>
 
 <main class="board">
   <section class="col" data-col="new"><h2>New <span class="n" id="n-new"></span></h2><div class="stack" id="c-new"></div></section>
   <section class="col" data-col="preparing"><h2>Preparing <span class="n" id="n-preparing"></span></h2><div class="stack" id="c-preparing"></div></section>
   <section class="col" data-col="ready"><h2>Ready to serve <span class="n" id="n-ready"></span></h2><div class="stack" id="c-ready"></div></section>
 </main>
+</div>
 
-<script>
-(function () {
-  'use strict';
-  var $ = function (id) { return document.getElementById(id); };
-  var rupees = function (n) { return '₹' + Number(n).toLocaleString('en-IN'); };
-  function el(tag, attrs) {
-    var n = document.createElement(tag);
-    for (var k in attrs || {}) {
-      if (k === 'text') n.textContent = attrs[k];
-      else if (k === 'class') n.className = attrs[k];
-      else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), attrs[k]);
-      else n.setAttribute(k, attrs[k]);
-    }
-    for (var i = 2; i < arguments.length; i++) if (arguments[i] != null) n.append(arguments[i]);
-    return n;
-  }
-
-  var orders = new Map(), servedToday = 0, takings = 0, soundOn = false, audio = null, firstLoad = true;
-  var ACTIONS = {
-    new: [['preparing', 'Start preparing']],
-    preparing: [['ready', 'Mark ready']],
-    ready: [['served', 'Served']],
-  };
-  var EMPTY = { new: 'No new orders. New ones appear here with a sound.', preparing: 'Nothing on the stove.', ready: 'Nothing waiting to be served.' };
-
-  function minutesAgo(iso) { return Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); }
-  function ago(iso) { var m = minutesAgo(iso); return m < 1 ? 'just now' : m === 1 ? '1 min ago' : m + ' min ago'; }
-
-  function ticket(o, fresh) {
-    var acts = (ACTIONS[o.status] || []).map(function (a) {
-      return el('button', { class: 'btn go', type: 'button', onclick: function () { move(o, a[0]); } }, a[1]);
-    });
-    if (o.status === 'new' || o.status === 'preparing') {
-      acts.push(el('button', { class: 'btn cancel', type: 'button', onclick: function () {
-        if (confirm('Cancel order #' + o.id + ' for table ' + o.table + '? The customer will see it was cancelled.')) move(o, 'cancelled');
-      } }, 'Cancel'));
-    }
-    var mins = minutesAgo(o.createdAt);
-    return el('article', { class: 'ticket' + (fresh ? ' fresh' : ''), 'data-status': o.status, 'data-id': o.id },
-      el('div', { class: 't-head' },
-        el('span', { class: 't-table', text: 'Table ' + o.table }),
-        el('span', { class: 't-meta' }, el('b', { text: '#' + o.id }), el('span', { class: mins >= 15 && o.status !== 'ready' ? 'late' : '', 'data-ago': o.createdAt, text: ago(o.createdAt) }))),
-      el('ul', { class: 't-items' }, ...o.items.map(function (l) {
-        return el('li', {}, el('span', { class: 'q', text: l.qty + '×' }),
-          el('span', { class: 'mark ' + (l.veg ? 'veg' : 'nonveg'), role: 'img', 'aria-label': l.veg ? 'Veg' : 'Egg or non-veg' }),
-          el('span', { text: l.name }));
-      })),
-      o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
-      el('div', { class: 't-foot' }, el('span', { class: 'who', text: o.name ? 'For ' + o.name : '' }), el('b', { class: 'money', text: rupees(o.total) })),
-      el('div', { class: 't-actions' }, ...acts));
-  }
-
-  function render(freshId) {
-    ['new', 'preparing', 'ready'].forEach(function (s) {
-      var list = [...orders.values()].filter(function (o) { return o.status === s; }).sort(function (a, b) { return a.id - b.id; });
-      $('n-' + s).textContent = list.length || '';
-      $('c-' + s).replaceChildren(...(list.length ? list.map(function (o) { return ticket(o, o.id === freshId); }) : [el('p', { class: 'empty', text: EMPTY[s] })]));
-    });
-    var waiting = [...orders.values()].filter(function (o) { return o.status === 'new'; }).length;
-    document.title = (waiting ? '(' + waiting + ') ' : '') + 'Kitchen · Good Luck Cafe';
-    $('today').replaceChildren('Today: ', el('b', { text: servedToday + ' served' }), ' · ', el('b', { class: 'money', text: rupees(takings) }));
-  }
-
-  function upsert(o) {
-    var isNew = !orders.has(o.id) && o.status === 'new';
-    if (o.status === 'served') { if (orders.has(o.id)) { servedToday++; takings += o.total; } orders.delete(o.id); }
-    else if (o.status === 'cancelled') orders.delete(o.id);
-    else orders.set(o.id, o);
-    render(isNew ? o.id : null);
-    if (isNew && !firstLoad) ding();
-  }
-
-  function move(o, status) {
-    error('');
-    fetch('/api/kitchen/orders/' + o.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: status }) })
-      .then(function (r) { return r.json().then(function (b) { if (!r.ok) throw new Error(b.message); return b; }); })
-      .then(upsert)
-      .catch(function (e) { error(e.message || 'Could not update the order. Check the connection.'); load(); });
-  }
-  function error(msg) { $('err').replaceChildren(msg ? el('p', { class: 'notice error err', role: 'alert', text: msg }) : ''); }
-
-  function load() {
-    return fetch('/api/kitchen/orders').then(function (r) { return r.json(); }).then(function (d) {
-      orders = new Map(d.orders.map(function (o) { return [o.id, o]; }));
-      servedToday = d.servedToday; takings = d.takingsToday;
-      render(null);
-    }).catch(function () { error('Can\'t reach the order server. Is it running?'); });
-  }
-
-  // two-note chime; browsers only allow sound after a tap, hence the button
-  function ding() {
-    if (!soundOn || !audio) return;
-    [880, 1320].forEach(function (f, i) {
-      var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.18;
-      o.frequency.value = f; o.type = 'sine';
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
-      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.55);
-    });
-  }
-  $('sound').addEventListener('click', function () {
-    soundOn = !soundOn;
-    if (soundOn && !audio) audio = new (window.AudioContext || window.webkitAudioContext)();
-    this.setAttribute('aria-pressed', soundOn);
-    this.textContent = soundOn ? 'Sound on' : 'Turn sound on';
-    if (soundOn) ding();
-  });
-
-  function connect() {
-    var es = new EventSource('/api/kitchen/stream');
-    es.addEventListener('open', function () { $('live').textContent = 'Live'; $('live').classList.add('on'); load().then(function () { firstLoad = false; }); error(''); });
-    es.addEventListener('order', function (e) { upsert(JSON.parse(e.data)); });
-    es.addEventListener('error', function () { $('live').textContent = 'Reconnecting…'; $('live').classList.remove('on'); });
-  }
-  setInterval(function () { document.querySelectorAll('[data-ago]').forEach(function (s) { s.textContent = ago(s.dataset.ago); }); }, 30000);
-  connect();
-})();
-</script>
+<script src="kitchen.js?v=3"></script>
 </body>
 </html>

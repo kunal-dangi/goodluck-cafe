@@ -3,7 +3,8 @@
   "private": true,
   "description": "Good Luck Cafe website and table ordering",
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning server.js"
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "set-password": "node --disable-warning=ExperimentalWarning server.js --set-password"
   },
   "engines": {
     "node": ">=22.13"

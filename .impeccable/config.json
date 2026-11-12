@@ -1,0 +1,44 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "order.html"
+        ],
+        "createdAt": "2026-11-12T12:45:11.463Z",
+        "reason": "Claude: cream is the cafe's established site-wide palette (matches their walls/menu card), shared with index.html"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "kitchen.html"
+        ],
+        "createdAt": "2026-11-12T12:45:11.473Z",
+        "reason": "Claude: cream is the cafe's established site-wide palette (matches their walls/menu card), shared with index.html"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "tables.html"
+        ],
+        "createdAt": "2026-11-12T12:45:11.484Z",
+        "reason": "Claude: cream is the cafe's established site-wide palette (matches their walls/menu card), shared with index.html"
+      },
+      {
+        "rule": "icon-tile-stack",
+        "value": "*",
+        "files": [
+          "order.html"
+        ],
+        "createdAt": "2026-11-12T12:45:11.494Z",
+        "reason": "Claude: flagged element is the back button sitting beside the 'Your order' heading in a flex row, not an icon tile above it"
+      }
+    ]
+  }
+}

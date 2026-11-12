@@ -27,7 +27,8 @@
   var PLUS = '<path d="M12 5v14M5 12h14"/>', MINUS = '<path d="M5 12h14"/>';
 
   var menu = null, items = {}, table = null, cart = {}, poll = null;
-  var views = ['Picker', 'Menu', 'Cart', 'Done'];
+  var views = ['Picker', 'Pin', 'Menu', 'Cart', 'Done'];
+  var seat = { open: false, joined: false }, afterPin = 'Menu';
 
   function show(name) {
     views.forEach(function (v) { $('view' + v).hidden = v !== name; });
@@ -135,9 +136,50 @@
     });
     if (!count()) lines.append(el('p', { class: 'line', text: 'Your order is empty.' }));
     $('cartTotal').textContent = rupees(total());
-    $('placeBtn').disabled = !count();
+    placeLabel();
   }
+  function placeLabel() {
+    var btn = $('placeBtn');
+    btn.disabled = !count() || !seat.open;
+    btn.textContent = !seat.open ? 'Table not open' : seat.joined ? 'Place order' : 'Enter table PIN to order';
+    $('cartError').replaceChildren(seat.open ? '' : el('p', { class: 'notice warn', style: 'margin-top:14px', text: 'Your table isn\'t open for ordering right now. Please ask the staff to open it, then try again.' }));
+  }
+
+  // ---------- table status + PIN ----------
+  function checkTable() {
+    return api('/api/tables/' + table).then(function (s) {
+      seat.open = s.open; seat.joined = s.joined;
+      if (!s.onNetwork) banner('warn', 'Connect to the cafe Wi-Fi to order from your table.');
+      else if (!s.open) banner('warn', 'Table ' + table + ' isn\'t open for ordering right now. Please ask the staff to open it. You can look at the menu meanwhile.');
+      else banner('', '');
+      return s;
+    });
+  }
+  function askPin(next) {
+    afterPin = next || 'Menu';
+    $('pinHelp').textContent = 'Your waiter will tell you the 4-digit PIN for Table ' + table + '.';
+    $('pinErr').replaceChildren(); $('pin').value = '';
+    show('Pin');
+    $('pin').focus();
+  }
+  $('pinForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = $('pinBtn');
+    btn.disabled = true; $('pinErr').replaceChildren();
+    api('/api/tables/' + table + '/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: $('pin').value.trim() }) })
+      .then(function () {
+        seat.open = true; seat.joined = true; banner('', '');
+        if (afterPin === 'Cart') { renderCart(); show('Cart'); } else { show('Menu'); refreshBar(); }
+      })
+      .catch(function (err) {
+        $('pinErr').replaceChildren(el('p', { class: 'notice error', role: 'alert', text: err.message }));
+        if (err.code === 'table-closed') checkTable();
+        $('pin').select();
+      })
+      .then(function () { btn.disabled = false; });
+  });
   function place() {
+    if (!seat.joined) return askPin('Cart');
     var btn = $('placeBtn');
     btn.disabled = true; btn.textContent = 'Placing order…';
     $('cartError').replaceChildren();
@@ -154,8 +196,12 @@
       document.querySelectorAll('[data-qty]').forEach(function (slot) { slot.replaceChildren(control(slot.dataset.qty)); });
       showOrder(order.id, order.token, order);
     }).catch(function (e) {
+      if (e.code === 'need-pin' || e.code === 'table-closed') {
+        seat.joined = false;
+        return checkTable().then(function () { if (seat.open) askPin('Cart'); else placeLabel(); });
+      }
       $('cartError').replaceChildren(el('p', { class: 'notice error', style: 'margin-top:14px', role: 'alert', text: e.message }));
-    }).then(function () { btn.disabled = !count(); btn.textContent = 'Place order'; });
+    }).then(function () { if (!$('viewCart').hidden) placeLabel(); });
   }
 
   // ---------- after ordering ----------
@@ -219,12 +265,14 @@
     renderMenu(); watchSections(); updateOrdersLink();
     show('Menu');
     refreshBar();
+    checkTable().then(function (s) { if (s.open && !s.joined && s.onNetwork) askPin('Menu'); })
+      .catch(function (e) { banner('error', e.message); });
   }
 
   document.addEventListener('click', function (e) {
     var go = e.target.closest('[data-go]');
     if (!go) return;
-    if (go.dataset.go === 'cart') { renderCart(); show('Cart'); }
+    if (go.dataset.go === 'cart') { renderCart(); show('Cart'); checkTable().then(placeLabel).catch(function () {}); }
     if (go.dataset.go === 'menu') { updateOrdersLink(); show('Menu'); refreshBar(); }
   });
   $('search').addEventListener('input', filter);
