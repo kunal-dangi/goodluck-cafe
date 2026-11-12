@@ -5,10 +5,10 @@
 //
 // Environment (all optional):
 //   PORT            8080
-//   TABLES          20                  number of tables
+//   TABLES          12                  number of tables
 //   ORDER_HOURS     "06:00-23:30"       India time, or "always"
-//   SESSION_HOURS   4                   an open table closes itself after this long
-//   CAFE_NETWORKS   ""                  e.g. "49.36.12.7/32,192.168.1.0/24": only these networks may join tables / order
+//   SESSION_HOURS   4                   a table left switched on turns itself off after this long
+//   JOIN_MINUTES    10                  phones can join a table only this long after it's switched on
 //   TRUST_PROXY     0                   1 when running behind a reverse proxy / hosting platform (reads X-Forwarded-For)
 //   STAFF_PASSWORD  ""                  overrides the saved staff password
 //   DB              data/orders.db
@@ -21,9 +21,10 @@ const { DatabaseSync } = require('node:sqlite');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 8080;
-const TABLES = Number(process.env.TABLES) || 20;
+const TABLES = Number(process.env.TABLES) || 12;
 const ORDER_HOURS = process.env.ORDER_HOURS || '06:00-23:30';
 const SESSION_HOURS = Number(process.env.SESSION_HOURS) || 4;
+const JOIN_MINUTES = Number(process.env.JOIN_MINUTES) || 10;
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const DB_FILE = process.env.DB || path.join(ROOT, 'data', 'orders.db');
 const STAFF_FILE = path.join(path.dirname(DB_FILE), 'staff.json');
@@ -77,32 +78,42 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'new', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
   CREATE INDEX IF NOT EXISTS orders_status ON orders(status);
   CREATE TABLE IF NOT EXISTS table_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, table_no INTEGER NOT NULL, pin TEXT NOT NULL,
-    opened_at TEXT NOT NULL, expires_at TEXT NOT NULL, closed_at TEXT);
+    id INTEGER PRIMARY KEY AUTOINCREMENT, table_no INTEGER NOT NULL, pin TEXT NOT NULL DEFAULT '',
+    opened_at TEXT NOT NULL, expires_at TEXT NOT NULL, closed_at TEXT, join_until TEXT);
   CREATE INDEX IF NOT EXISTS sessions_table ON table_sessions(table_no, closed_at);
-  CREATE TABLE IF NOT EXISTS seats (token_hash TEXT PRIMARY KEY, session_id INTEGER NOT NULL, created_at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS staff_sessions (token_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);
 `);
-if (!db.prepare('PRAGMA table_info(orders)').all().some((c) => c.name === 'session_id')) {
-  db.exec('ALTER TABLE orders ADD COLUMN session_id INTEGER');
-}
+// Upgrades for databases made by earlier versions.
+const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
+if (!cols('orders').includes('session_id')) db.exec('ALTER TABLE orders ADD COLUMN session_id INTEGER');
+if (!cols('orders').includes('seat_id')) db.exec('ALTER TABLE orders ADD COLUMN seat_id INTEGER');
+if (!cols('table_sessions').includes('join_until')) db.exec('ALTER TABLE table_sessions ADD COLUMN join_until TEXT');
+if (cols('seats').length && !cols('seats').includes('approved')) db.exec('DROP TABLE seats'); // old PIN-era seats: temporary data
+db.exec(`CREATE TABLE IF NOT EXISTS seats (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL UNIQUE, session_id INTEGER NOT NULL,
+  approved INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`);
 const q = {
-  insertOrder: db.prepare(`INSERT INTO orders (token, table_no, items, note, name, total, status, created_at, updated_at, session_id)
-                           VALUES (?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)`),
+  insertOrder: db.prepare(`INSERT INTO orders (token, table_no, items, note, name, total, status, created_at, updated_at, session_id, seat_id)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
   order: db.prepare('SELECT * FROM orders WHERE id = ?'),
-  active: db.prepare(`SELECT * FROM orders WHERE status IN ('new','preparing','ready') ORDER BY id`),
+  active: db.prepare(`SELECT * FROM orders WHERE status IN ('pending','new','preparing','ready') ORDER BY id`),
   servedSince: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount FROM orders WHERE status = 'served' AND created_at >= ?`),
   setStatus: db.prepare('UPDATE orders SET status = ?, updated_at = ? WHERE id = ?'),
-  bill: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount FROM orders WHERE session_id = ? AND status != 'cancelled'`),
+  pendingOfSeat: db.prepare(`SELECT * FROM orders WHERE seat_id = ? AND status = 'pending'`),
+  bill: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount FROM orders WHERE session_id = ? AND status NOT IN ('cancelled','pending')`),
   openSession: db.prepare(`SELECT * FROM table_sessions WHERE table_no = ? AND closed_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1`),
   allOpen: db.prepare(`SELECT * FROM table_sessions WHERE closed_at IS NULL AND expires_at > ?`),
-  newSession: db.prepare('INSERT INTO table_sessions (table_no, pin, opened_at, expires_at) VALUES (?, ?, ?, ?)'),
+  newSession: db.prepare("INSERT INTO table_sessions (table_no, pin, opened_at, expires_at, join_until) VALUES (?, '', ?, ?, ?)"),
   session: db.prepare('SELECT * FROM table_sessions WHERE id = ?'),
   closeSession: db.prepare('UPDATE table_sessions SET closed_at = ? WHERE id = ?'),
-  setPin: db.prepare('UPDATE table_sessions SET pin = ? WHERE id = ?'),
+  setJoinUntil: db.prepare('UPDATE table_sessions SET join_until = ? WHERE id = ?'),
   addSeat: db.prepare('INSERT INTO seats (token_hash, session_id, created_at) VALUES (?, ?, ?)'),
   seat: db.prepare('SELECT * FROM seats WHERE token_hash = ?'),
+  seatById: db.prepare('SELECT * FROM seats WHERE id = ?'),
+  approveSeat: db.prepare('UPDATE seats SET approved = 1 WHERE id = ?'),
+  dropSeat: db.prepare('DELETE FROM seats WHERE id = ?'),
   dropSeats: db.prepare('DELETE FROM seats WHERE session_id = ?'),
+  seatCount: db.prepare('SELECT COUNT(*) n FROM seats WHERE session_id = ?'),
   addStaff: db.prepare('INSERT INTO staff_sessions (token_hash, created_at, expires_at) VALUES (?, ?, ?)'),
   staff: db.prepare('SELECT * FROM staff_sessions WHERE token_hash = ? AND expires_at > ?'),
   dropStaff: db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?'),
@@ -111,22 +122,27 @@ const q = {
 const now = () => new Date().toISOString();
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const newToken = () => crypto.randomBytes(24).toString('base64url');
-const newPin = () => String(crypto.randomInt(1000, 10000)); // 4 digits, never starts with 0
 const orderOut = (r) => r && { id: r.id, table: r.table_no, items: JSON.parse(r.items), note: r.note, name: r.name,
   total: r.total, status: r.status, createdAt: r.created_at, updatedAt: r.updated_at };
 
 // Allowed moves for staff. Anything else is refused.
-const NEXT = { new: ['preparing', 'cancelled'], preparing: ['ready', 'cancelled'], ready: ['served'], served: [], cancelled: [] };
+// 'pending' (a new phone's first order) only moves through approve / reject below.
+const NEXT = { pending: [], new: ['preparing', 'cancelled'], preparing: ['ready', 'cancelled'], ready: ['served'], served: [], cancelled: [] };
 
 // ======================================================================
-// Table sessions (layer: table activation + per-visit PIN)
+// Table sessions. The receptionist switches each table on and off.
+// Table lock: phones can join only in the first JOIN_MINUTES after switching on (or when the receptionist
+// reopens joining). Approval: a phone's first order waits for the receptionist to approve it.
 // ======================================================================
 function activeSession(table) { return q.openSession.get(table, now()); }
+const joinOpen = (s) => !!(s && s.join_until && s.join_until > now());
 function tableView(table, s = activeSession(table)) {
   if (!s) return { table, open: false };
   const b = q.bill.get(s.id);
-  return { table, open: true, pin: s.pin, openedAt: s.opened_at, expiresAt: s.expires_at, orders: b.n, bill: b.amount };
+  return { table, open: true, openedAt: s.opened_at, expiresAt: s.expires_at, joinUntil: joinOpen(s) ? s.join_until : null,
+    phones: q.seatCount.get(s.id).n, orders: b.n, bill: b.amount };
 }
+// The phone's seat for this request, if its table is still switched on.
 function seatFor(req) {
   const tok = cookies(req).glc_seat;
   if (!tok) return null;
@@ -134,8 +150,9 @@ function seatFor(req) {
   if (!seat) return null;
   const s = q.session.get(seat.session_id);
   if (!s || s.closed_at || s.expires_at <= now()) return null;
-  return s;
+  return { seat, session: s };
 }
+const minutesFromNow = (m) => new Date(Date.now() + m * 60e3).toISOString();
 
 // ======================================================================
 // Rate limits (in memory; reset on restart, which is fine for these)
@@ -148,7 +165,7 @@ function limited(key, max, windowMs) {
   list.push(t); hits.set(key, list);
   return false;
 }
-function countFail(key, windowMs) { // record without blocking
+function countFail(key, windowMs) { // record a hit without blocking
   const t = Date.now();
   hits.set(key, (hits.get(key) || []).filter((x) => t - x < windowMs).concat(t));
 }
@@ -160,28 +177,13 @@ setInterval(() => {
 }, 600e3).unref();
 
 // ======================================================================
-// Network check (layer: cafe Wi-Fi). Off unless CAFE_NETWORKS is set.
+// Client address (rate limits only; not trusted for anything else)
 // ======================================================================
 function clientIp(req) {
   let ip = TRUST_PROXY ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '';
   if (!ip) ip = req.socket.remoteAddress || '';
   if (ip.startsWith('::ffff:')) ip = ip.slice(7);
-  if (ip === '::1') ip = '127.0.0.1';
   return ip;
-}
-const ipNum = (ip) => { const p = ip.split('.').map(Number); return p.length === 4 && p.every((x) => x >= 0 && x <= 255) ? ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3] : null; };
-const NETWORKS = (process.env.CAFE_NETWORKS || '').split(',').map((s) => s.trim()).filter(Boolean).map((cidr) => {
-  const [base, bits = '32'] = cidr.split('/');
-  const n = ipNum(base), b = Number(bits);
-  // Fail closed: a typo must not quietly switch the check off.
-  if (n == null || !/^\d+$/.test(bits) || !(b >= 0 && b <= 32)) { console.error(`CAFE_NETWORKS has a bad entry "${cidr}". Fix it (e.g. 49.36.12.7/32) and start again.`); process.exit(1); }
-  const mask = b === 0 ? 0 : (0xffffffff << (32 - b)) >>> 0;
-  return { net: (n & mask) >>> 0, mask };
-}).filter(Boolean);
-function onCafeNetwork(req) {
-  if (!NETWORKS.length) return true;
-  const n = ipNum(clientIp(req));
-  return n != null && NETWORKS.some((x) => ((n & x.mask) >>> 0) === x.net);
 }
 
 // ======================================================================
@@ -265,57 +267,52 @@ async function api(req, res, url) {
     return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS });
   }
 
-  // Table status for the customer page: is it open, and has this phone entered the PIN?
+  // Table status for the customer page.
   if (p[1] === 'tables' && p[2]) {
     const table = Number(p[2]);
     if (!Number.isInteger(table) || table < 1 || table > TABLES) return fail(res, 404, 'table', 'Unknown table number.');
+    const s = activeSession(table), mine = seatFor(req);
+    const joined = !!(s && mine && mine.session.id === s.id);
 
     if (req.method === 'GET' && p.length === 3) {
-      const s = activeSession(table), seat = seatFor(req);
-      return send(res, 200, { table, open: !!s, joined: !!(s && seat && seat.id === s.id), onNetwork: onCafeNetwork(req) });
+      return send(res, 200, { table, open: !!s, joined, joinOpen: joinOpen(s), approved: joined && !!mine.seat.approved });
     }
-
+    // Join: only while the table is in its joining window.
     if (req.method === 'POST' && p[3] === 'join') {
-      if (!onCafeNetwork(req)) return fail(res, 403, 'network', 'Connect to the cafe Wi-Fi to order from your table.');
-      // Brute-force guard: 5 wrong PINs per table per phone per 10 min, 15 per phone per hour.
-      const kT = `pin:${ip}:${table}`, kIp = `pinip:${ip}`;
-      if (failures(kT, 600e3) >= 5 || failures(kIp, 3600e3) >= 15) {
-        return fail(res, 429, 'locked', 'Too many wrong PINs. Please ask the staff for help.');
-      }
-      const s = activeSession(table);
-      if (!s) return fail(res, 409, 'table-closed', 'This table isn\'t open yet. Please ask the staff to open it.');
-      const { pin } = await readJson(req, 1024);
-      const given = Buffer.from(String(pin ?? '').padEnd(4).slice(0, 8)), real = Buffer.from(s.pin.padEnd(4).slice(0, 8));
-      if (given.length !== real.length || !crypto.timingSafeEqual(given, real)) {
-        countFail(kT, 600e3); countFail(kIp, 3600e3);
-        const left = 5 - failures(kT, 600e3);
-        return fail(res, 401, 'pin', left > 0 ? `That PIN isn't right. ${left} ${left === 1 ? 'try' : 'tries'} left.` : 'Too many wrong PINs. Please ask the staff for help.');
-      }
+      if (!s) return fail(res, 409, 'table-closed', 'Ordering isn\'t switched on for this table. Please ask at the counter.');
+      if (joined) return send(res, 200, { table, joined: true, approved: !!mine.seat.approved });
+      if (limited(`join:${ip}`, 20, 600e3)) return fail(res, 429, 'slow-down', 'Too many tries. Please ask at the counter.');
+      if (!joinOpen(s)) return fail(res, 409, 'table-locked', 'This table is already in use. If you\'re sitting here, please ask at the counter.');
       const tok = newToken();
       q.addSeat.run(sha(tok), s.id, now());
+      broadcast('table', tableView(table));
       const maxAge = Math.max(60, Math.round((new Date(s.expires_at) - Date.now()) / 1000));
-      return send(res, 200, { table, joined: true }, { 'Set-Cookie': cookie(req, 'glc_seat', tok, maxAge) });
+      return send(res, 200, { table, joined: true, approved: false }, { 'Set-Cookie': cookie(req, 'glc_seat', tok, maxAge) });
     }
   }
 
   if (req.method === 'POST' && url.pathname === '/api/orders') {
     if (!isOpen()) return fail(res, 409, 'closed', 'The kitchen is closed right now. Orders open again at 6:00 am.');
-    if (!onCafeNetwork(req)) return fail(res, 403, 'network', 'Connect to the cafe Wi-Fi to order from your table.');
     const body = await readJson(req);
     const table = Number(body.table);
     if (!Number.isInteger(table) || table < 1 || table > TABLES) return fail(res, 400, 'table', 'Unknown table number.');
-    const s = seatFor(req);
-    if (!s || s.table_no !== table) {
-      return activeSession(table)
-        ? fail(res, 401, 'need-pin', 'Enter your table PIN to order.')
-        : fail(res, 409, 'table-closed', 'This table isn\'t open for ordering. Please ask the staff.');
+    const s = activeSession(table), mine = seatFor(req);
+    if (!s) return fail(res, 409, 'table-closed', 'Ordering isn\'t switched on for this table. Please ask at the counter.');
+    if (!mine || mine.session.id !== s.id) {
+      return joinOpen(s) ? fail(res, 401, 'not-joined', 'Please reload the page and try again.')
+        : fail(res, 409, 'table-locked', 'This table is already in use. If you\'re sitting here, please ask at the counter.');
     }
-    // Flood guard: 6 orders per table visit per 10 min, 10 per phone per 10 min.
-    if (limited(`ord:${s.id}`, 6, 600e3) || limited(`ordip:${ip}`, 10, 600e3)) {
-      return fail(res, 429, 'slow-down', 'That\'s a lot of orders in a short time. Please ask the staff if you need more.');
+    if (!mine.seat.approved && q.pendingOfSeat.all(mine.seat.id).length >= 2) {
+      return fail(res, 429, 'wait-approval', 'Your first order is waiting for the counter to confirm it. Please wait a moment.');
+    }
+    // Flood guard, counting only orders that go through: 5 per phone and 15 per table per 10 min.
+    // The address limit is loose because mobile networks put many customers behind one address.
+    const keys = [[`ord:${mine.seat.id}`, 5], [`ordt:${s.id}`, 15], [`ordip:${ip}`, 40]];
+    if (keys.some(([k, max]) => failures(k, 600e3) >= max)) {
+      return fail(res, 429, 'slow-down', 'That\'s a lot of orders in a short time. Please ask at the counter if you need more.');
     }
     if (!Array.isArray(body.items) || body.items.length === 0) return fail(res, 400, 'empty', 'Your order is empty.');
-    if (body.items.length > 40) return fail(res, 400, 'too-many', 'That order is too large to place online. Please ask the staff.');
+    if (body.items.length > 40) return fail(res, 400, 'too-many', 'That order is too large to place online. Please ask at the counter.');
     const merged = new Map();
     for (const it of body.items) {
       const item = items.get(it && it.id);
@@ -326,8 +323,10 @@ async function api(req, res, url) {
     }
     const lines = [...merged].map(([id, qty]) => { const i = items.get(id); return { id, name: i.name, qty, price: i.price, veg: i.veg }; });
     const total = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
+    const status = mine.seat.approved ? 'new' : 'pending';
     const t = now(), token = crypto.randomBytes(12).toString('hex');
-    const { lastInsertRowid } = q.insertOrder.run(token, table, JSON.stringify(lines), clean(body.note, 200), clean(body.name, 40), total, t, t, s.id);
+    const { lastInsertRowid } = q.insertOrder.run(token, table, JSON.stringify(lines), clean(body.note, 200), clean(body.name, 40), total, status, t, t, s.id, mine.seat.id);
+    for (const [k] of keys) countFail(k, 600e3); // count this order against the limits
     const order = orderOut(q.order.get(lastInsertRowid));
     broadcast('order', order);
     broadcast('table', tableView(table));
@@ -368,6 +367,20 @@ async function api(req, res, url) {
       const done = q.servedSince.get(startOfIndiaDay());
       return send(res, 200, { orders: q.active.all().map(orderOut), servedToday: done.n, takingsToday: done.amount, open: isOpen() });
     }
+    // Approve / reject a new phone's first order. Approving trusts the phone for the rest of the visit;
+    // rejecting cancels its waiting orders and removes the phone from the table.
+    if (req.method === 'POST' && p[2] === 'orders' && p[3] && (p[4] === 'approve' || p[4] === 'reject')) {
+      const r = q.order.get(Number(p[3]));
+      if (!r || r.status !== 'pending') return fail(res, 409, 'status', 'That order isn\'t waiting for approval any more.');
+      const seat = r.seat_id && q.seatById.get(r.seat_id);
+      const waiting = seat ? q.pendingOfSeat.all(seat.id) : [r];
+      const to = p[4] === 'approve' ? 'new' : 'cancelled';
+      for (const o of waiting) q.setStatus.run(to, now(), o.id);
+      if (seat) p[4] === 'approve' ? q.approveSeat.run(seat.id) : q.dropSeat.run(seat.id);
+      for (const o of waiting) broadcast('order', orderOut(q.order.get(o.id)));
+      broadcast('table', tableView(r.table_no));
+      return send(res, 200, orderOut(q.order.get(r.id)));
+    }
     if (req.method === 'PATCH' && p[2] === 'orders' && p[3]) {
       const id = Number(p[3]);
       const r = q.order.get(id);
@@ -384,25 +397,28 @@ async function api(req, res, url) {
       const open = new Map(q.allOpen.all(now()).map((s) => [s.table_no, s]));
       const list = [];
       for (let t = 1; t <= TABLES; t++) list.push(tableView(t, open.get(t)));
-      return send(res, 200, { tables: list, sessionHours: SESSION_HOURS });
+      return send(res, 200, { tables: list, sessionHours: SESSION_HOURS, joinMinutes: JOIN_MINUTES });
     }
     if (req.method === 'POST' && p[2] === 'tables' && p[3] && p[4]) {
       const table = Number(p[3]);
       if (!Number.isInteger(table) || table < 1 || table > TABLES) return fail(res, 404, 'table', 'Unknown table number.');
       const s = activeSession(table);
       if (p[4] === 'open') {
-        if (!s) { const t = Date.now(); q.newSession.run(table, newPin(), new Date(t).toISOString(), new Date(t + SESSION_HOURS * 3600e3).toISOString()); }
+        if (!s) { const t = Date.now(); q.newSession.run(table, new Date(t).toISOString(), new Date(t + SESSION_HOURS * 3600e3).toISOString(), minutesFromNow(JOIN_MINUTES)); }
       } else if (p[4] === 'close') {
-        if (!s) return fail(res, 409, 'not-open', 'That table is already closed.');
+        if (!s) return fail(res, 409, 'not-open', 'That table is already off.');
         const view = tableView(table, s);
         q.closeSession.run(now(), s.id);
         q.dropSeats.run(s.id); // every phone at that table loses access
+        for (const o of q.active.all().filter((o) => o.session_id === s.id && o.status === 'pending')) {
+          q.setStatus.run('cancelled', now(), o.id); broadcast('order', orderOut(q.order.get(o.id)));
+        }
         const closed = { table, open: false, closedBill: view.bill, closedOrders: view.orders };
         broadcast('table', closed);
         return send(res, 200, closed);
-      } else if (p[4] === 'new-pin') {
-        if (!s) return fail(res, 409, 'not-open', 'Open the table first.');
-        q.setPin.run(newPin(), s.id); // phones already in keep access; the old PIN stops working for new ones
+      } else if (p[4] === 'allow-join') {
+        if (!s) return fail(res, 409, 'not-open', 'Turn the table on first.');
+        q.setJoinUntil.run(minutesFromNow(JOIN_MINUTES), s.id);
       } else return fail(res, 404, 'not-found', 'Not found.');
       const view = tableView(table);
       broadcast('table', view);
@@ -467,7 +483,6 @@ http.createServer(async (req, res) => {
     if (!e.status) console.error(e);
   }
 }).listen(PORT, () => {
-  console.log(`Good Luck Cafe ordering on http://localhost:${PORT}  (tables 1-${TABLES}, ordering ${ORDER_HOURS}, tables auto-close after ${SESSION_HOURS} h)`);
+  console.log(`Good Luck Cafe ordering on http://localhost:${PORT}  (tables 1-${TABLES}, ordering ${ORDER_HOURS}, phones can join for ${JOIN_MINUTES} min, tables switch off after ${SESSION_HOURS} h)`);
   console.log(`  Kitchen + tables:  /kitchen.html     Customer:  /order.html?table=1     QR cards:  /tables.html`);
-  console.log(NETWORKS.length ? `  Cafe network check ON: ${process.env.CAFE_NETWORKS}` : '  Cafe network check off (set CAFE_NETWORKS to turn it on)');
 });

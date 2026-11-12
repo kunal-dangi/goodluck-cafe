@@ -27,8 +27,8 @@
   var PLUS = '<path d="M12 5v14M5 12h14"/>', MINUS = '<path d="M5 12h14"/>';
 
   var menu = null, items = {}, table = null, cart = {}, poll = null;
-  var views = ['Picker', 'Pin', 'Menu', 'Cart', 'Done'];
-  var seat = { open: false, joined: false }, afterPin = 'Menu';
+  var views = ['Picker', 'Menu', 'Cart', 'Done'];
+  var seat = { open: false, joined: false, joinOpen: false, approved: false };
 
   function show(name) {
     views.forEach(function (v) { $('view' + v).hidden = v !== name; });
@@ -139,47 +139,28 @@
     placeLabel();
   }
   function placeLabel() {
-    var btn = $('placeBtn');
-    btn.disabled = !count() || !seat.open;
-    btn.textContent = !seat.open ? 'Table not open' : seat.joined ? 'Place order' : 'Enter table PIN to order';
-    $('cartError').replaceChildren(seat.open ? '' : el('p', { class: 'notice warn', style: 'margin-top:14px', text: 'Your table isn\'t open for ordering right now. Please ask the staff to open it, then try again.' }));
+    var btn = $('placeBtn'), ok = seat.open && seat.joined;
+    btn.disabled = !count() || !ok;
+    btn.textContent = ok ? 'Place order' : !seat.open ? 'Ordering is off for this table' : 'This table is in use';
+    $('cartError').replaceChildren(ok ? '' : el('p', { class: 'notice warn', style: 'margin-top:14px', text: tableMessage() }));
   }
 
-  // ---------- table status + PIN ----------
+  // ---------- table status: switched on? this phone part of it? ----------
+  function tableMessage() {
+    if (!seat.open) return 'Ordering isn\'t switched on for Table ' + table + ' right now. Please ask at the counter. You can look at the menu meanwhile.';
+    if (!seat.joined) return 'Table ' + table + ' is already in use. If you\'re sitting here, please ask at the counter to let your phone join.';
+    return '';
+  }
   function checkTable() {
     return api('/api/tables/' + table).then(function (s) {
-      seat.open = s.open; seat.joined = s.joined;
-      if (!s.onNetwork) banner('warn', 'Connect to the cafe Wi-Fi to order from your table.');
-      else if (!s.open) banner('warn', 'Table ' + table + ' isn\'t open for ordering right now. Please ask the staff to open it. You can look at the menu meanwhile.');
-      else banner('', '');
-      return s;
-    });
+      seat.open = s.open; seat.joined = s.joined; seat.joinOpen = s.joinOpen; seat.approved = s.approved;
+      if (s.open && !s.joined && s.joinOpen) {
+        return api('/api/tables/' + table + '/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+          .then(function (j) { seat.joined = true; seat.approved = j.approved; }, function () { /* message below */ });
+      }
+    }).then(function () { banner(seat.open && seat.joined ? '' : 'warn', tableMessage()); return seat; });
   }
-  function askPin(next) {
-    afterPin = next || 'Menu';
-    $('pinHelp').textContent = 'Your waiter will tell you the 4-digit PIN for Table ' + table + '.';
-    $('pinErr').replaceChildren(); $('pin').value = '';
-    show('Pin');
-    $('pin').focus();
-  }
-  $('pinForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var btn = $('pinBtn');
-    btn.disabled = true; $('pinErr').replaceChildren();
-    api('/api/tables/' + table + '/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin: $('pin').value.trim() }) })
-      .then(function () {
-        seat.open = true; seat.joined = true; banner('', '');
-        if (afterPin === 'Cart') { renderCart(); show('Cart'); } else { show('Menu'); refreshBar(); }
-      })
-      .catch(function (err) {
-        $('pinErr').replaceChildren(el('p', { class: 'notice error', role: 'alert', text: err.message }));
-        if (err.code === 'table-closed') checkTable();
-        $('pin').select();
-      })
-      .then(function () { btn.disabled = false; });
-  });
   function place() {
-    if (!seat.joined) return askPin('Cart');
     var btn = $('placeBtn');
     btn.disabled = true; btn.textContent = 'Placing order…';
     $('cartError').replaceChildren();
@@ -188,7 +169,7 @@
       body: JSON.stringify({ table: table, note: $('note').value, name: $('name').value,
         items: Object.keys(cart).map(function (id) { return { id: id, qty: cart[id] }; }) }),
     }).then(function (order) {
-      var mine = store.get('glc-orders-' + table, []);
+      var mine = recentOrders();
       mine.unshift({ id: order.id, t: order.token, at: order.createdAt });
       store.set('glc-orders-' + table, mine.slice(0, 10));
       store.set('glc-name', $('name').value);
@@ -196,9 +177,8 @@
       document.querySelectorAll('[data-qty]').forEach(function (slot) { slot.replaceChildren(control(slot.dataset.qty)); });
       showOrder(order.id, order.token, order);
     }).catch(function (e) {
-      if (e.code === 'need-pin' || e.code === 'table-closed') {
-        seat.joined = false;
-        return checkTable().then(function () { if (seat.open) askPin('Cart'); else placeLabel(); });
+      if (e.code === 'table-closed' || e.code === 'table-locked' || e.code === 'not-joined') {
+        return checkTable().then(placeLabel);
       }
       $('cartError').replaceChildren(el('p', { class: 'notice error', style: 'margin-top:14px', role: 'alert', text: e.message }));
     }).then(function () { if (!$('viewCart').hidden) placeLabel(); });
@@ -206,11 +186,12 @@
 
   // ---------- after ordering ----------
   var STATUS_TEXT = {
+    pending: 'Waiting for the counter to confirm your first order. This only happens once per phone.',
     new: 'Sent to the kitchen. They\'ll start on it shortly.',
     preparing: 'The kitchen is preparing your order.',
     ready: 'Ready! It\'s on its way to your table.',
     served: 'Served. Enjoy your meal, and pay at the counter when you\'re done.',
-    cancelled: 'This order was cancelled by the staff. Please ask at the counter.',
+    cancelled: 'This order was cancelled. Please ask at the counter.',
   };
   var ORDER = ['new', 'preparing', 'ready', 'served'];
   function renderOrder(o) {
@@ -240,8 +221,12 @@
     if (!known) tick();
     if (!finished) poll = setInterval(tick, 5000);
   }
+  // Only this visit's orders: anything older than a few hours was a previous customer at this table.
+  function recentOrders() {
+    return store.get('glc-orders-' + table, []).filter(function (o) { return Date.now() - new Date(o.at) < 4 * 3600e3; });
+  }
   function renderPast(currentId) {
-    var mine = store.get('glc-orders-' + table, []).filter(function (o) { return o.id !== currentId; });
+    var mine = recentOrders().filter(function (o) { return o.id !== currentId; });
     $('past').hidden = !mine.length;
     $('pastList').replaceChildren.apply($('pastList'), mine.map(function (o) {
       return el('button', { type: 'button', onclick: function () { showOrder(o.id, o.t); } },
@@ -249,7 +234,7 @@
     }));
   }
   function updateOrdersLink() {
-    var mine = store.get('glc-orders-' + table, []);
+    var mine = recentOrders();
     var a = $('myOrdersLink');
     a.hidden = !mine.length;
     a.textContent = mine.length === 1 ? 'Track your order #' + mine[0].id : 'Track your orders (' + mine.length + ')';
@@ -265,8 +250,7 @@
     renderMenu(); watchSections(); updateOrdersLink();
     show('Menu');
     refreshBar();
-    checkTable().then(function (s) { if (s.open && !s.joined && s.onNetwork) askPin('Menu'); })
-      .catch(function (e) { banner('error', e.message); });
+    checkTable().catch(function (e) { banner('error', e.message); });
   }
 
   document.addEventListener('click', function (e) {
@@ -278,7 +262,7 @@
   $('search').addEventListener('input', filter);
   $('vegOnly').addEventListener('change', filter);
   $('placeBtn').addEventListener('click', place);
-  $('myOrdersLink').addEventListener('click', function () { var m = store.get('glc-orders-' + table, [])[0]; if (m) showOrder(m.id, m.t); });
+  $('myOrdersLink').addEventListener('click', function () { var m = recentOrders()[0]; if (m) showOrder(m.id, m.t); });
   $('tableGo').addEventListener('click', function () {
     var n = Number($('tableSelect').value);
     history.replaceState(null, '', '?table=' + n);

@@ -77,8 +77,26 @@
     .tile-num { font-family: "Rozha One", Georgia, serif; font-size: 1.5rem; line-height: 1; }
     .tile-state { font-size: .78rem; font-weight: 600; color: var(--muted); }
     .tile.open .tile-state { color: #126128; }
-    .tile-pin { font-size: .8rem; color: var(--muted); }
-    .tile-pin b { display: block; font-size: 1.45rem; letter-spacing: .14em; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .tile-join { font-size: .8rem; color: var(--muted); line-height: 1.35; }
+    .tile-join b { color: #126128; font-weight: 600; }
+    .tile .link { border: 0; background: none; padding: 0; color: var(--red); font: inherit; font-size: .8rem; font-weight: 600; text-decoration: underline; text-underline-offset: .2em; cursor: pointer; justify-self: start; }
+
+    /* approvals */
+    .approvals { margin: 18px 20px 0; padding: 16px; border-radius: 14px; background: #fff1d6; border: 1.5px solid #e9c77d; }
+    .approvals h2 { font-size: 1.4rem; color: #5a3a00; }
+    .approvals > p { color: #6b4a10; font-size: .9rem; margin: 2px 0 12px; }
+    .approve-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .approve { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.06); display: grid; gap: 8px; }
+    .approve.fresh { animation: arrive 1.6s cubic-bezier(.16,1,.3,1); }
+    .ap-head { display: flex; justify-content: space-between; align-items: baseline; }
+    .ap-head .t-table { font-size: 1.6rem; }
+    .ap-items { font-size: .95rem; }
+    .ap-actions { display: flex; gap: 8px; }
+    .ap-actions .btn { flex: 1; min-height: 46px; }
+    .ap-actions .ok { background: var(--ok); border-color: var(--ok); }
+    .ap-actions .ok:hover { background: #156b2c; border-color: #156b2c; }
+    .ap-actions .cancel { flex: none; padding: 0 18px; background: transparent; border-color: var(--line); color: var(--muted); }
+    .ap-actions .cancel:hover { border-color: var(--red); color: var(--red); background: transparent; }
     .tile-bill { font-size: .85rem; color: var(--muted); }
     .tile .btn { min-height: 38px; padding: 0 10px; font-size: .88rem; border-radius: 8px; }
     .tile-actions { display: flex; gap: 6px; }
@@ -113,10 +131,16 @@
 <div id="app" hidden>
 <div id="err"></div>
 
+<section class="approvals" id="approvals" aria-labelledby="apTitle" hidden>
+  <h2 id="apTitle">Approve new phones</h2>
+  <p>This is the first order from a phone. Approve it if someone is sitting at that table. After that, the phone orders without asking.</p>
+  <div class="approve-list" id="approveList"></div>
+</section>
+
 <section class="tables-panel" aria-labelledby="tablesTitle">
   <div class="tp-head">
     <h2 id="tablesTitle">Tables</h2>
-    <p>Open a table when guests sit down and tell them its PIN. Close it when they leave and pay.</p>
+    <p>Turn a table on when guests sit down, and off when they leave and pay.</p>
   </div>
   <div class="tiles" id="tiles"></div>
 </section>
@@ -128,6 +152,6 @@
 </main>
 </div>
 
-<script src="kitchen.js?v=3"></script>
+<script src="kitchen.js?v=5"></script>
 </body>
 </html>

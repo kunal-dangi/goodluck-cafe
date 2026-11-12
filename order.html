@@ -99,13 +99,6 @@
     .picker p { color: var(--muted); }
     .picker .field { text-align: left; max-width: 320px; margin: 22px auto 0; }
     .picker .btn { margin-top: 14px; width: 100%; max-width: 320px; }
-    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .pin-form { display: grid; justify-items: center; gap: 4px; margin-top: 22px; }
-    .pin-form #pinErr { width: 100%; max-width: 320px; margin-top: 8px; }
-    .pin-input { width: 200px; height: 64px; text-align: center; font-size: 2rem; font-weight: 600; letter-spacing: .4em; padding-left: .4em;
-      font-variant-numeric: tabular-nums; border: 2px solid var(--line); border-radius: 14px; background: #fff; }
-    .pin-input:focus { outline: none; border-color: var(--ink); }
-    .pin-why { margin-top: 18px; font-size: .88rem; }
   </style>
 </head>
 <body>
@@ -129,20 +122,6 @@
       <select id="tableSelect"></select>
     </div>
     <button class="btn" id="tableGo" type="button">Show the menu</button>
-  </section>
-
-  <!-- 1b. table PIN -->
-  <section id="viewPin" class="picker" hidden>
-    <h1>Enter your table PIN</h1>
-    <p id="pinHelp">Your waiter will tell you the 4-digit PIN for your table.</p>
-    <form id="pinForm" class="pin-form">
-      <label for="pin" class="sr">Table PIN</label>
-      <input id="pin" class="pin-input" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" required>
-      <div id="pinErr"></div>
-      <button class="btn" type="submit" id="pinBtn">Continue</button>
-    </form>
-    <p class="pin-why">The PIN makes sure only guests sitting at the table can order to it.</p>
-    <button class="orders-link" type="button" data-go="menu">Just look at the menu</button>
   </section>
 
   <!-- 2. menu -->
@@ -210,6 +189,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=3"></script>
+<script src="order.js?v=5"></script>
 </body>
 </html>

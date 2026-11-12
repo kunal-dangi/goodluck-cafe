@@ -1,4 +1,4 @@
-// Kitchen screen: staff login, table open/close with PINs, live order board.
+// Receptionist + kitchen screen: staff login, tables on/off, approving new phones, live order board.
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
@@ -55,21 +55,22 @@
   function tile(t) {
     if (!t.open) {
       return el('div', { class: 'tile' },
-        el('div', { class: 'tile-top' }, el('span', { class: 'tile-num', text: t.table }), el('span', { class: 'tile-state', text: 'Available' })),
-        el('button', { class: 'btn btn-quiet', type: 'button', onclick: function () { tableAction(t.table, 'open'); } }, 'Open table'));
+        el('div', { class: 'tile-top' }, el('span', { class: 'tile-num', text: t.table }), el('span', { class: 'tile-state', text: 'Off' })),
+        el('button', { class: 'btn btn-quiet', type: 'button', onclick: function () { tableAction(t.table, 'open'); } }, 'Turn on'));
     }
+    var left = t.joinUntil ? Math.max(1, Math.ceil((new Date(t.joinUntil) - Date.now()) / 60000)) : 0;
+    var info = (t.phones || 0) + (t.phones === 1 ? ' phone' : ' phones') + (t.orders ? ' · ' + t.orders + (t.orders === 1 ? ' order · ' : ' orders · ') + rupees(t.bill) : '');
     return el('div', { class: 'tile open' },
-      el('div', { class: 'tile-top' }, el('span', { class: 'tile-num', text: t.table }), el('span', { class: 'tile-state', text: 'Occupied' })),
-      el('div', { class: 'tile-pin' }, 'PIN', el('b', { text: t.pin })),
-      el('div', { class: 'tile-bill money', text: t.orders ? t.orders + (t.orders === 1 ? ' order · ' : ' orders · ') + rupees(t.bill) : 'No orders yet' }),
+      el('div', { class: 'tile-top' }, el('span', { class: 'tile-num', text: t.table }), el('span', { class: 'tile-state', text: 'On' })),
+      el('div', { class: 'tile-bill money', text: info }),
+      left ? el('div', { class: 'tile-join' }, el('b', { text: 'New phones can join' }), ' · ' + left + ' min left')
+           : el('div', { class: 'tile-join', text: 'Locked to these phones' }),
+      left ? null : el('button', { class: 'link', type: 'button', onclick: function () { tableAction(t.table, 'allow-join'); } }, 'Let more phones join'),
       el('div', { class: 'tile-actions' },
         el('button', { class: 'btn btn-ink', type: 'button', onclick: function () {
-          var msg = 'Close table ' + t.table + '?\n\n' + (t.orders ? 'Bill: ' + rupees(t.bill) + ' for ' + t.orders + (t.orders === 1 ? ' order' : ' orders') + '.\n' : '') + 'Phones at this table will no longer be able to order.';
+          var msg = 'Turn off table ' + t.table + '?\n\n' + (t.orders ? 'Bill: ' + rupees(t.bill) + ' for ' + t.orders + (t.orders === 1 ? ' order' : ' orders') + '.\n' : '') + 'Phones at this table will no longer be able to order.';
           if (confirm(msg)) tableAction(t.table, 'close');
-        } }, 'Close'),
-        el('button', { class: 'btn ghost', type: 'button', title: 'Use if the PIN was shared with someone not at the table', onclick: function () {
-          if (confirm('Make a new PIN for table ' + t.table + '? Phones already ordering at this table keep working.')) tableAction(t.table, 'new-pin');
-        } }, 'New PIN')));
+        } }, 'Turn off')));
   }
   function renderTables() {
     var list = [...tables.values()].sort(function (a, b) { return a.table - b.table; });
@@ -111,18 +112,38 @@
       el('div', { class: 't-foot' }, el('span', { class: 'who', text: o.name ? 'For ' + o.name : '' }), el('b', { class: 'money', text: rupees(o.total) })),
       el('div', { class: 't-actions' }, ...acts));
   }
+  function approvalCard(o, fresh) {
+    return el('article', { class: 'approve' + (fresh ? ' fresh' : '') },
+      el('div', { class: 'ap-head' }, el('span', { class: 't-table', text: 'Table ' + o.table }), el('span', { class: 't-meta', 'data-ago': o.createdAt, text: ago(o.createdAt) })),
+      el('div', { class: 'ap-items', text: o.items.map(function (l) { return l.qty + '× ' + l.name; }).join(', ') }),
+      o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
+      el('div', { class: 't-foot' }, el('span', { class: 'who', text: o.name ? 'For ' + o.name : 'New phone' }), el('b', { class: 'money', text: rupees(o.total) })),
+      el('div', { class: 'ap-actions' },
+        el('button', { class: 'btn ok', type: 'button', onclick: function () { decide(o, 'approve'); } }, 'Approve'),
+        el('button', { class: 'btn cancel', type: 'button', onclick: function () {
+          if (confirm('Reject this order for table ' + o.table + '? The phone will be removed from the table.')) decide(o, 'reject');
+        } }, 'Reject')));
+  }
+  function decide(o, what) {
+    error('');
+    call('POST', '/api/kitchen/orders/' + o.id + '/' + what).then(upsert).catch(function (e) { error(e.message); load(); });
+  }
   function renderOrders(freshId) {
+    var pending = [...orders.values()].filter(function (o) { return o.status === 'pending'; }).sort(function (a, b) { return a.id - b.id; });
+    $('approvals').hidden = !pending.length;
+    $('approveList').replaceChildren(...pending.map(function (o) { return approvalCard(o, o.id === freshId); }));
     ['new', 'preparing', 'ready'].forEach(function (s) {
       var list = [...orders.values()].filter(function (o) { return o.status === s; }).sort(function (a, b) { return a.id - b.id; });
       $('n-' + s).textContent = list.length || '';
       $('c-' + s).replaceChildren(...(list.length ? list.map(function (o) { return ticket(o, o.id === freshId); }) : [el('p', { class: 'empty', text: EMPTY[s] })]));
     });
-    var waiting = [...orders.values()].filter(function (o) { return o.status === 'new'; }).length;
+    var waiting = [...orders.values()].filter(function (o) { return o.status === 'new' || o.status === 'pending'; }).length;
     document.title = (waiting ? '(' + waiting + ') ' : '') + 'Kitchen · Good Luck Cafe';
     $('today').replaceChildren('Today: ', el('b', { text: servedToday + ' served' }), ' · ', el('b', { class: 'money', text: rupees(takings) }));
   }
   function upsert(o) {
-    var isNew = !orders.has(o.id) && o.status === 'new';
+    var was = orders.get(o.id);
+    var isNew = (!was && (o.status === 'new' || o.status === 'pending')) || (o.status === 'new' && was && was.status === 'pending');
     if (o.status === 'served') { if (orders.has(o.id)) { servedToday++; takings += o.total; } orders.delete(o.id); }
     else if (o.status === 'cancelled') orders.delete(o.id);
     else orders.set(o.id, o);
@@ -177,7 +198,10 @@
       call('GET', '/api/staff/me').catch(function () {});
     });
   }
-  setInterval(function () { document.querySelectorAll('[data-ago]').forEach(function (s) { s.textContent = ago(s.dataset.ago); }); }, 30000);
+  setInterval(function () {
+    document.querySelectorAll('[data-ago]').forEach(function (s) { s.textContent = ago(s.dataset.ago); });
+    if (!$('app').hidden) renderTables(); // joining countdown
+  }, 30000);
 
   fetch('/api/staff/me').then(function (r) { if (r.ok) showApp(); else showLogin(); }, function () { showLogin(); error('Can\'t reach the order server.'); });
 })();
