@@ -52,8 +52,9 @@ h2 { font-size: clamp(2rem, 4vw, 2.8rem); }
 
 .top { position: sticky; top: 0; z-index: 10; background: var(--cream); border-bottom: 1px solid var(--line); }
 .top .wrap { display: flex; justify-content: space-between; align-items: center; height: 68px; }
-.logo { font-size: 1.7rem; color: var(--red); text-decoration: none; }
-.logo span { color: var(--ink); }
+.logo { display: inline-flex; align-items: center; gap: 12px; font-size: 1.7rem; color: var(--red); text-decoration: none; }
+.logo img { width: 46px; height: 46px; flex: none; border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0,0,0,.18); }
+.logo-text span { color: var(--ink); }
 nav a { margin-left: 28px; text-decoration: none; font-weight: 500; font-size: .95rem; }
 nav a:hover { color: var(--red); }
 
@@ -272,7 +273,9 @@ address strong { font-weight: 600; }
 footer { background: var(--ink); color: #d4c8b5; padding: 64px 0 28px; font-size: .92rem; }
 .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr 1.3fr 1fr; gap: 32px; }
 footer .logo { color: #ff6b5e; font-size: 1.7rem; margin-bottom: 10px; }
-footer .logo span { color: #f3ead9; }
+footer .logo { display: flex; }
+footer .logo img { width: 52px; height: 52px; box-shadow: 0 0 0 2px rgba(243,234,217,.9); }
+footer .logo-text span { color: #f3ead9; }
 footer h3 { font-size: .95rem; font-weight: 600; color: #f3ead9; margin-bottom: 8px; }
 footer p + p { margin-top: 8px; }
 footer a:hover { color: #fff; }
@@ -282,7 +285,8 @@ footer a:hover { color: #fff; }
   .wrap { padding-left: 16px; padding-right: 16px; }
   .hide-sm { display: none; }
   nav a { margin-left: 16px; }
-  .logo { font-size: 1.4rem; }
+  .logo { font-size: 1.4rem; gap: 10px; }
+  .logo img { width: 40px; height: 40px; }
   .awning { height: 34px; background: repeating-linear-gradient(90deg, var(--red) 0 28px, #f6ecdb 28px 56px);
     -webkit-mask: radial-gradient(14px 11px at 14px 23px, #000 98%, transparent) 0 0 / 28px 34px repeat-x, linear-gradient(#000, #000) 0 0 / 100% 23px no-repeat;
             mask: radial-gradient(14px 11px at 14px 23px, #000 98%, transparent) 0 0 / 28px 34px repeat-x, linear-gradient(#000, #000) 0 0 / 100% 23px no-repeat; }
@@ -318,7 +322,8 @@ footer a:hover { color: #fff; }
 }
 
 @media (max-width: 420px) {
-  .logo { font-size: 1.2rem; white-space: nowrap; }
+  .logo { font-size: 1.12rem; white-space: nowrap; gap: 8px; }
+  .logo img { width: 36px; height: 36px; }
   nav { white-space: nowrap; }
   nav a { margin-left: 12px; font-size: .88rem; }
 }
