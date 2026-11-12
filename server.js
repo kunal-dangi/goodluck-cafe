@@ -481,7 +481,12 @@ async function api(req, res, url) {
     // Fake-order guard: 3 online orders per mobile number and 10 per visitor address per hour; 2 unconfirmed per number.
     // (The address limit is loose: mobile networks put many people behind one address.)
     const keys = [[`onl:${phone}`, 3], [`onlip:${ip}`, 10]];
-    if (keys.some(([k, max]) => failures(k, 3600e3) >= max)) return fail(res, 429, 'slow-down', 'Too many orders in a short time. Please call the cafe.');
+    const full = keys.find(([k, max]) => failures(k, 3600e3) >= max);
+    if (full) {
+      const t = Date.now(), recent = (hits.get(full[0]) || []).filter((x) => t - x < 3600e3);
+      const again = new Date(Math.min(...recent) + 3600e3).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+      return fail(res, 429, 'slow-down', `${full[0].startsWith('onl:') ? 'This number has' : 'You\'ve'} placed ${full[1]} orders in the last hour. You can order again after ${again}, or call the cafe.`);
+    }
     if (q.pendingOfPhone.get(phone).n >= 2) return fail(res, 429, 'wait-approval', 'Your earlier order is still waiting to be confirmed. We\'ll call you shortly.');
     const priced = priceItems(body.items);
     if (priced.error) return fail(res, 400, priced.error, priced.message);
