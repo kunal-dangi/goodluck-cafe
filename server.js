@@ -108,6 +108,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS sessions_table ON table_sessions(table_no, closed_at);
   CREATE TABLE IF NOT EXISTS staff_sessions (token_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS staff_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, action TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '');
+  -- Dish ratings: one per dish per served order, given by whoever holds that order's token.
+  CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER NOT NULL, item_id TEXT NOT NULL,
+    stars INTEGER NOT NULL CHECK (stars BETWEEN 1 AND 5), created_at TEXT NOT NULL, UNIQUE (order_id, item_id));
 `);
 // Upgrades for databases made by earlier versions.
 const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
@@ -154,6 +157,9 @@ const q = {
   log: db.prepare('INSERT INTO staff_log (at, action, detail) VALUES (?, ?, ?)'),
   logRecent: db.prepare('SELECT at, action, detail FROM staff_log ORDER BY id DESC LIMIT ?'),
   logPrune: db.prepare('DELETE FROM staff_log WHERE at < ?'),
+  ratings: db.prepare('SELECT item_id, AVG(stars) avg, COUNT(*) n FROM reviews GROUP BY item_id'),
+  reviewedOrder: db.prepare('SELECT COUNT(*) n FROM reviews WHERE order_id = ?'),
+  addReview: db.prepare('INSERT INTO reviews (order_id, item_id, stars, created_at) VALUES (?, ?, ?, ?)'),
   // 3. privacy: after PRIVACY_DAYS keep only what the accounts need (items, totals, time), drop who and where
   erasePersonal: db.prepare(`UPDATE orders SET name = '', phone = '', address = '', note = '', lat = NULL, lng = NULL
                              WHERE created_at < ? AND (name != '' OR phone != '' OR address != '' OR note != '' OR lat IS NOT NULL)`),
@@ -352,7 +358,10 @@ async function api(req, res, url) {
 
   // ---------------- public ----------------
   if (req.method === 'GET' && url.pathname === '/api/menu') {
-    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL,
+    // Real averages only: a dish nobody has rated yet is 0.0 from 0 ratings.
+    const ratings = {};
+    for (const r of q.ratings.all()) ratings[r.item_id] = { avg: Math.round(r.avg * 10) / 10, count: r.n };
+    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL, ratings,
       delivery: { cafe: DELIVERY.cafe, maxKm: DELIVERY.maxKm, fees: DELIVERY.fees, maxAccuracyM: DELIVERY.maxAccuracyM } });
   }
 
@@ -457,12 +466,34 @@ async function api(req, res, url) {
     return send(res, 201, { ...order, token });
   }
 
-  // Customer: track one order. Needs the token given when it was placed, so order numbers can't be guessed.
-  if (req.method === 'GET' && p[1] === 'orders' && p.length === 3) {
+  // Customer: track one order, and rate it once it's served. Both need the token given when the order
+  // was placed, so nobody can look at or rate someone else's order.
+  if (p[1] === 'orders' && p[2] && (p.length === 3 || p[3] === 'review')) {
     const r = q.order.get(Number(p[2]));
     const t = url.searchParams.get('t') || '';
     if (!r || t.length !== r.token.length || !crypto.timingSafeEqual(Buffer.from(t), Buffer.from(r.token))) return fail(res, 404, 'not-found', 'Order not found.');
-    return send(res, 200, orderOut(r));
+    const reviewed = q.reviewedOrder.get(r.id).n > 0;
+    if (req.method === 'GET' && p.length === 3) return send(res, 200, { ...orderOut(r), reviewed });
+
+    if (req.method === 'POST' && p[3] === 'review') {
+      if (r.status !== 'served') return fail(res, 409, 'not-served', 'You can rate your order once it has been served.');
+      if (reviewed) return fail(res, 409, 'reviewed', 'You\'ve already rated this order. Thank you!');
+      if (limited(`rev:${ip}`, 20, 3600e3)) return fail(res, 429, 'slow-down', 'Too many ratings in a short time. Please try later.');
+      const { ratings } = await readJson(req, 4096);
+      const inOrder = new Set(JSON.parse(r.items).map((l) => l.id));
+      if (!Array.isArray(ratings) || ratings.length === 0 || ratings.length > inOrder.size) return fail(res, 400, 'ratings', 'Please rate at least one dish.');
+      const seen = new Set();
+      for (const x of ratings) {
+        if (!x || !inOrder.has(x.id) || seen.has(x.id)) return fail(res, 400, 'ratings', 'You can only rate the dishes in this order, once each.');
+        if (!Number.isInteger(x.stars) || x.stars < 1 || x.stars > 5) return fail(res, 400, 'ratings', 'Ratings are 1 to 5 stars.');
+        seen.add(x.id);
+      }
+      const t2 = now();
+      db.exec('BEGIN');
+      try { for (const x of ratings) q.addReview.run(r.id, x.id, x.stars, t2); db.exec('COMMIT'); }
+      catch (e) { db.exec('ROLLBACK'); throw e; }
+      return send(res, 201, { reviewed: true });
+    }
   }
 
   // ---------------- staff login ----------------

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
-  <link rel="stylesheet" href="order.css?v=1">
+  <link rel="stylesheet" href="order.css?v=2">
 </head>
 <body>
 
@@ -87,6 +87,14 @@
     </div>
     <div class="lines" id="doneLines" style="margin-top:14px"></div>
     <div class="totals"><span>To pay at the counter</span><span class="money" id="doneTotal"></span></div>
+    <section class="review" id="reviewBox" aria-labelledby="reviewTitle" hidden>
+      <h2 id="reviewTitle">How was it?</h2>
+      <p>Rate what you had. It helps other guests choose.</p>
+      <div id="reviewItems"></div>
+      <div id="reviewErr"></div>
+      <button class="btn" id="reviewBtn" type="button">Send rating</button>
+    </section>
+    <p class="notice info review-thanks" id="reviewThanks" hidden>Thank you for rating your food! Enjoyed the visit? <a href="https://www.google.com/search?q=Goodluck+cafe+Dighi#lrd=0x3bc2c70033099bf7:0x21b72f120c61496,3,,," target="_blank" rel="noopener">Review us on Google</a> too.</p>
     <div class="actions">
       <button class="btn" type="button" data-go="menu">Order something else</button>
     </div>
@@ -101,6 +109,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=6"></script>
+<script src="order.js?v=7"></script>
 </body>
 </html>

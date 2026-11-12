@@ -26,8 +26,10 @@
     return s;
   }
   var PLUS = '<path d="M12 5v14M5 12h14"/>', MINUS = '<path d="M5 12h14"/>';
+  var STAR = '<path d="M12 2.6l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/>';
+  function starSvg() { var s = svg(STAR); s.removeAttribute('class'); return s; }
 
-  var menu = null, items = {}, table = null, cart = {}, poll = null;
+  var menu = null, items = {}, table = null, cart = {}, poll = null, current = null; // current: { id, token } shown in Done
   var ONLINE = document.body.dataset.mode === 'online';
   var views = ONLINE ? ['Menu', 'Cart', 'Done'] : ['Picker', 'Menu', 'Cart', 'Done'];
   var loc = null; // online delivery: { lat, lng, accuracy, km, fee } once the phone shares its location
@@ -88,7 +90,7 @@
         var row = el('div', { class: 'item' + (i.addon ? ' addon' : ''), 'data-veg': i.veg ? '1' : '0', 'data-search': (i.name + ' ' + c.name).toLowerCase() },
           el('span', { class: 'mark ' + (i.veg ? 'veg' : 'nonveg'), role: 'img', 'aria-label': i.veg ? 'Veg' : 'Egg or non-veg' }),
           el('div', { class: 'item-main' }, el('div', { class: 'item-name', text: i.name }),
-            el('div', { class: 'item-price money', text: i.price == null ? 'MRP' : rupees(i.price) })),
+            el('div', { class: 'item-price money' }, i.price == null ? 'MRP' : rupees(i.price), ratingBadge(i.id))),
           i.price == null ? el('span', { class: 'na', text: 'Ask at the counter' }) : el('span', { 'data-qty': i.id }, control(i.id)));
         sec.append(row);
       });
@@ -269,6 +271,62 @@
       .then(function () { if (!$('viewCart').hidden) onlineLabel(); });
   }
 
+  // ---------- dish ratings (real averages only; a dish nobody rated shows 0.0) ----------
+  function ratingBadge(id) {
+    var r = (menu.ratings || {})[id] || { avg: 0, count: 0 };
+    var badge = el('span', { class: 'rating' + (r.count ? ' has' : ''), 'data-rating': id,
+      'aria-label': r.count ? 'Rated ' + r.avg.toFixed(1) + ' out of 5 from ' + r.count + (r.count === 1 ? ' rating' : ' ratings') : 'No ratings yet' });
+    badge.append(starSvg(), el('b', { text: r.avg.toFixed(1) }), el('span', { text: '(' + r.count + ')' }));
+    return badge;
+  }
+  function refreshRatings() {
+    return api('/api/menu').then(function (m) {
+      menu.ratings = m.ratings;
+      document.querySelectorAll('[data-rating]').forEach(function (b) { b.replaceWith(ratingBadge(b.dataset.rating)); });
+    }).catch(function () {});
+  }
+  function renderReview(o) {
+    var done = o.reviewed || store.get('glc-reviewed', []).indexOf(o.id) !== -1;
+    $('reviewBox').hidden = o.status !== 'served' || done;
+    $('reviewThanks').hidden = o.status !== 'served' || !done;
+    if ($('reviewBox').hidden || $('reviewItems').dataset.order === String(o.id)) return;
+    $('reviewItems').dataset.order = o.id;
+    $('reviewErr').replaceChildren();
+    $('reviewItems').replaceChildren.apply($('reviewItems'), o.items.map(function (l) {
+      var labels = [];
+      var box = el('span', { class: 'stars-input', role: 'radiogroup', 'aria-label': 'Stars for ' + l.name });
+      for (var n = 1; n <= 5; n++) {
+        (function (n) {
+          var input = el('input', { type: 'radio', name: 'rate-' + l.id, value: n, 'aria-label': n + (n === 1 ? ' star' : ' stars') });
+          input.addEventListener('change', function () { labels.forEach(function (lb, i) { lb.classList.toggle('on', i < n); }); });
+          var label = el('label', {}, input, starSvg());
+          labels.push(label); box.append(label);
+        })(n);
+      }
+      return el('fieldset', { class: 'rate', 'data-item': l.id }, el('legend', { text: l.name }), box);
+    }));
+  }
+  $('reviewBtn').addEventListener('click', function () {
+    var btn = this, ratings = [];
+    document.querySelectorAll('#reviewItems .rate').forEach(function (f) {
+      var c = f.querySelector('input:checked');
+      if (c) ratings.push({ id: f.dataset.item, stars: Number(c.value) });
+    });
+    if (!ratings.length) return $('reviewErr').replaceChildren(el('p', { class: 'notice error', role: 'alert', text: 'Tap the stars to rate at least one dish.' }));
+    btn.disabled = true; btn.textContent = 'Sending…';
+    var id = current.id;
+    api('/api/orders/' + id + '/review?t=' + encodeURIComponent(current.token), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ratings: ratings }) })
+      .then(function () {
+        store.set('glc-reviewed', store.get('glc-reviewed', []).concat(id).slice(-50));
+        $('reviewBox').hidden = true; $('reviewThanks').hidden = false;
+        refreshRatings();
+      }, function (e) {
+        if (e.code === 'reviewed') { store.set('glc-reviewed', store.get('glc-reviewed', []).concat(id).slice(-50)); $('reviewBox').hidden = true; $('reviewThanks').hidden = false; return; }
+        $('reviewErr').replaceChildren(el('p', { class: 'notice error', role: 'alert', text: e.message }));
+      })
+      .then(function () { btn.disabled = false; btn.textContent = 'Send rating'; });
+  });
+
   // ---------- after ordering ----------
   var STATUS_TEXT = {
     pending: 'Waiting for the counter to confirm your first order. This only happens once per phone.',
@@ -312,9 +370,11 @@
     }).concat(o.fee ? [el('div', { class: 'line' }, el('div', { class: 'line-main', text: 'Delivery' }), el('span', { class: 'money', text: rupees(o.fee) }))] : [])
       .concat(o.note ? [el('p', { class: 'line line-sub', text: 'Note: ' + o.note })] : []));
     $('doneTotal').textContent = rupees(o.total);
+    renderReview(o);
     return o.status === 'served' || o.status === 'cancelled';
   }
   function showOrder(id, token, known) {
+    current = { id: id, token: token };
     show('Done');
     renderPast(id);
     var finished = known ? renderOrder(known) : false;

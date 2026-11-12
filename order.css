@@ -103,3 +103,26 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .sum { margin-top: 8px; padding: 4px 4px 0; display: grid; gap: 4px; color: var(--muted); font-size: .95rem; }
 .sum div { display: flex; justify-content: space-between; }
 .req { color: var(--red); font-weight: 600; }
+
+/* dish ratings */
+.rating { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.rating svg { width: 13px; height: 13px; fill: #d8ccb6; }
+.rating.has svg { fill: #e3a008; }
+.rating.has b { color: var(--ink); font-weight: 600; }
+
+/* review after the order is served */
+.review { margin-top: 18px; padding: 18px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; }
+.review h2 { font-size: 1.4rem; }
+.review > p { color: var(--muted); font-size: .92rem; margin: 2px 0 10px; }
+.rate { border: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.rate:last-child { border-bottom: 0; }
+.rate legend { float: left; font-weight: 500; }
+.stars-input { display: flex; gap: 2px; flex: none; }
+.stars-input label { width: 36px; height: 36px; display: grid; place-items: center; cursor: pointer; border-radius: 8px; }
+.stars-input input { position: absolute; opacity: 0; pointer-events: none; }
+.stars-input svg { width: 26px; height: 26px; fill: #fff; stroke: #c9b89c; stroke-width: 1.5; transition: fill .12s, stroke .12s; }
+.stars-input label.on svg { fill: #e3a008; stroke: #c48a00; }
+.stars-input label:has(:focus-visible) { outline: 2px solid var(--ink); outline-offset: 1px; }
+.review .btn { width: 100%; margin-top: 14px; min-height: 50px; border-radius: 12px; }
+.review-thanks { margin-top: 18px; }
+.review-thanks a { color: var(--red); font-weight: 600; }
