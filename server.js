@@ -11,6 +11,8 @@
 //   STAFF_PORT      8081                staff door (always this computer only)
 //   PUBLIC_HOST     127.0.0.1           customer door listens here; the tunnel connects to it locally.
 //                                       Use 0.0.0.0 only for testing with phones on the same network.
+//   UPI_ID          ""                  the cafe's UPI ID, e.g. goodluckcafe@okaxis. Turns on "Pay with UPI". Never a made-up one.
+//   UPI_NAME        Good Luck Cafe      name shown in the customer's UPI app
 //   TABLE_GPS       on                  table phones must share a location within 150 m of the cafe ("off" to disable)
 //   PUBLIC_URL      ""                  the customers' address, e.g. https://order.goodluckcafe.in (used on QR cards)
 //   Online orders (delivery / pickup, pay on delivery): within DELIVERY_KM of the cafe, fee by distance (see DELIVERY below).
@@ -45,6 +47,12 @@ const DELIVERY = {
 };
 // Table ordering: a phone joins a table only if its location says it's at the cafe.
 // TABLE_GPS=off turns the check off (e.g. for a demo away from the cafe).
+// Pay with UPI: the customer's UPI app opens with the cafe's ID, the amount and the order number filled in.
+// The receptionist confirms the money arrived (no payment gateway, no fees).
+const UPI = { id: (process.env.UPI_ID || '').trim(), name: (process.env.UPI_NAME || 'Good Luck Cafe').trim().slice(0, 50) };
+if (UPI.id && !/^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9]{1,63}$/.test(UPI.id)) {
+  console.error(`UPI_ID "${UPI.id}" doesn't look like a UPI ID (name@bank). Fix it and start again.`); process.exit(1);
+}
 const ONSITE = {
   on: process.env.TABLE_GPS !== 'off',
   radiusM: 150,        // counts as "at the cafe" within this distance of the cafe's map pin
@@ -124,7 +132,7 @@ db.exec(`
 const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
 if (!cols('orders').includes('session_id')) db.exec('ALTER TABLE orders ADD COLUMN session_id INTEGER');
 if (!cols('orders').includes('seat_id')) db.exec('ALTER TABLE orders ADD COLUMN seat_id INTEGER');
-for (const [c, def] of [['kind', "TEXT NOT NULL DEFAULT 'table'"], ['phone', "TEXT NOT NULL DEFAULT ''"], ['address', "TEXT NOT NULL DEFAULT ''"],
+for (const [c, def] of [['pay_claimed_at', 'TEXT'], ['paid_at', 'TEXT'], ['paid_method', 'TEXT'], ['kind', "TEXT NOT NULL DEFAULT 'table'"], ['phone', "TEXT NOT NULL DEFAULT ''"], ['address', "TEXT NOT NULL DEFAULT ''"],
   ['lat', 'REAL'], ['lng', 'REAL'], ['distance_m', 'INTEGER'], ['fee', 'INTEGER NOT NULL DEFAULT 0']]) {
   if (!cols('orders').includes(c)) db.exec(`ALTER TABLE orders ADD COLUMN ${c} ${def}`);
 }
@@ -145,7 +153,11 @@ const q = {
   insertOnline: db.prepare(`INSERT INTO orders (token, table_no, kind, items, note, name, phone, address, lat, lng, distance_m, fee, total, status, created_at, updated_at)
                             VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`),
   pendingOfPhone: db.prepare(`SELECT COUNT(*) n FROM orders WHERE phone = ? AND status = 'pending'`),
-  bill: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount FROM orders WHERE session_id = ? AND status NOT IN ('cancelled','pending')`),
+  bill: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount, COALESCE(SUM(CASE WHEN paid_at IS NOT NULL THEN total END),0) paid
+                    FROM orders WHERE session_id = ? AND status NOT IN ('cancelled','pending')`),
+  payChecks: db.prepare(`SELECT * FROM orders WHERE pay_claimed_at IS NOT NULL AND paid_at IS NULL AND status != 'cancelled' ORDER BY pay_claimed_at`),
+  claimPaid: db.prepare('UPDATE orders SET pay_claimed_at = ? WHERE id = ?'),
+  markPaid: db.prepare('UPDATE orders SET paid_at = ?, paid_method = ? WHERE id = ?'),
   openSession: db.prepare(`SELECT * FROM table_sessions WHERE table_no = ? AND closed_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1`),
   allOpen: db.prepare(`SELECT * FROM table_sessions WHERE closed_at IS NULL AND expires_at > ?`),
   newSession: db.prepare("INSERT INTO table_sessions (table_no, pin, opened_at, expires_at, join_until) VALUES (?, '', ?, ?, ?)"),
@@ -179,7 +191,7 @@ const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const newToken = () => crypto.randomBytes(24).toString('base64url');
 const orderOut = (r) => r && { id: r.id, kind: r.kind || 'table', table: r.table_no, distanceM: r.distance_m, items: JSON.parse(r.items), note: r.note, name: r.name,
   phone: r.phone || '', address: r.address || '', lat: r.lat, lng: r.lng, distanceKm: r.distance_m == null ? null : Math.round(r.distance_m / 100) / 10,
-  fee: r.fee || 0, total: r.total, status: r.status, createdAt: r.created_at, updatedAt: r.updated_at };
+  fee: r.fee || 0, total: r.total, status: r.status, payClaimedAt: r.pay_claimed_at || null, paidAt: r.paid_at || null, paidMethod: r.paid_method || null, createdAt: r.created_at, updatedAt: r.updated_at };
 
 // Allowed moves for staff. Anything else is refused.
 // 'pending' (a new phone's first order) only moves through approve / reject below.
@@ -196,7 +208,7 @@ function tableView(table, s = activeSession(table)) {
   if (!s) return { table, open: false };
   const b = q.bill.get(s.id);
   return { table, open: true, openedAt: s.opened_at, expiresAt: s.expires_at, joinUntil: joinOpen(s) ? s.join_until : null,
-    phones: q.seatCount.get(s.id).n, orders: b.n, bill: b.amount };
+    phones: q.seatCount.get(s.id).n, orders: b.n, bill: b.amount, paid: b.paid };
 }
 // The phone's seat for this request, if its table is still switched on.
 function seatFor(req) {
@@ -372,7 +384,8 @@ async function api(req, res, url) {
     for (const r of q.ratings.all()) ratings[r.item_id] = { avg: Math.round(r.avg * 10) / 10, count: r.n };
     return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL, ratings,
       delivery: { cafe: DELIVERY.cafe, maxKm: DELIVERY.maxKm, fees: DELIVERY.fees, maxAccuracyM: DELIVERY.maxAccuracyM },
-      onsite: { on: ONSITE.on, radiusM: ONSITE.radiusM, maxAccuracyM: ONSITE.maxAccuracyM } });
+      onsite: { on: ONSITE.on, radiusM: ONSITE.radiusM, maxAccuracyM: ONSITE.maxAccuracyM },
+      upi: UPI.id ? { id: UPI.id, name: UPI.name } : null });
   }
 
   // Table status for the customer page.
@@ -496,12 +509,25 @@ async function api(req, res, url) {
 
   // Customer: track one order, and rate it once it's served. Both need the token given when the order
   // was placed, so nobody can look at or rate someone else's order.
-  if (p[1] === 'orders' && p[2] && (p.length === 3 || p[3] === 'review')) {
+  if (p[1] === 'orders' && p[2] && (p.length === 3 || p[3] === 'review' || p[3] === 'paid')) {
     const r = q.order.get(Number(p[2]));
     const t = url.searchParams.get('t') || '';
     if (!r || t.length !== r.token.length || !crypto.timingSafeEqual(Buffer.from(t), Buffer.from(r.token))) return fail(res, 404, 'not-found', 'Order not found.');
     const reviewed = q.reviewedOrder.get(r.id).n > 0;
     if (req.method === 'GET' && p.length === 3) return send(res, 200, { ...orderOut(r), reviewed });
+
+    // "I've paid by UPI": the receptionist checks the cafe's UPI app and confirms or says it didn't arrive.
+    if (req.method === 'POST' && p[3] === 'paid') {
+      if (!UPI.id) return fail(res, 409, 'no-upi', 'UPI payment isn\'t set up. Please pay at the counter.');
+      if (r.status === 'pending' || r.status === 'cancelled') return fail(res, 409, 'not-confirmed', 'Please wait until your order is confirmed before paying.');
+      if (r.paid_at) return fail(res, 409, 'paid', 'This order is already paid. Thank you!');
+      if (r.pay_claimed_at) return send(res, 200, { ...orderOut(r), reviewed });
+      if (limited(`payclaim:${ip}`, 10, 3600e3)) return fail(res, 429, 'slow-down', 'Too many tries. Please ask at the counter.');
+      q.claimPaid.run(now(), r.id);
+      const order = orderOut(q.order.get(r.id));
+      broadcast('order', order);
+      return send(res, 200, { ...order, reviewed });
+    }
 
     if (req.method === 'POST' && p[3] === 'review') {
       if (r.status !== 'served') return fail(res, 409, 'not-served', 'You can rate your order once it has been served.');
@@ -550,10 +576,31 @@ async function api(req, res, url) {
 
     if (req.method === 'GET' && p[2] === 'orders') {
       const done = q.servedSince.get(startOfIndiaDay());
-      return send(res, 200, { orders: q.active.all().map(orderOut), servedToday: done.n, takingsToday: done.amount, open: isOpen() });
+      return send(res, 200, { orders: q.active.all().map(orderOut), payChecks: q.payChecks.all().map(orderOut), upi: !!UPI.id,
+        servedToday: done.n, takingsToday: done.amount, open: isOpen() });
     }
     // Approve / reject a new phone's first order. Approving trusts the phone for the rest of the visit;
     // rejecting cancels its waiting orders and removes the phone from the table.
+    // Payment: 'received' (UPI money arrived), 'not-received' (clear the claim), 'cash' (paid at the counter).
+    if (req.method === 'POST' && p[2] === 'orders' && p[3] && p[4] === 'payment') {
+      const r = q.order.get(Number(p[3]));
+      if (!r || r.status === 'cancelled') return fail(res, 404, 'not-found', 'Order not found.');
+      const { result } = await readJson(req, 512);
+      if (!['received', 'cash', 'not-received'].includes(result)) return fail(res, 400, 'result', 'Unknown payment result.');
+      if (r.paid_at) return fail(res, 409, 'paid', 'That order is already marked paid.');
+      if (result === 'received' || result === 'cash') {
+        q.markPaid.run(now(), result === 'cash' ? 'cash' : 'upi', r.id);
+        staffLog(result === 'cash' ? 'Paid by cash' : 'UPI payment received', `${orderLabel(r)} · ₹${r.total}`);
+      } else if (result === 'not-received') {
+        if (!r.pay_claimed_at) return fail(res, 409, 'no-claim', 'The customer hasn\'t said they paid.');
+        q.claimPaid.run(null, r.id);
+        staffLog('UPI payment not found', `${orderLabel(r)} · ₹${r.total}`);
+      } else return fail(res, 400, 'result', 'Unknown payment result.');
+      const order = orderOut(q.order.get(r.id));
+      broadcast('order', order);
+      if (r.table_no) broadcast('table', tableView(r.table_no));
+      return send(res, 200, order);
+    }
     if (req.method === 'POST' && p[2] === 'orders' && p[3] && (p[4] === 'approve' || p[4] === 'reject')) {
       const r = q.order.get(Number(p[3]));
       if (!r || r.status !== 'pending') return fail(res, 409, 'status', 'That order isn\'t waiting for approval any more.');
@@ -722,6 +769,7 @@ publicServer.on('error', onListenError('customer door', PORT)).listen(PORT, PUBL
 // Staff door: hard-wired to this computer. Not configurable on purpose.
 http.createServer(handler('staff')).on('error', onListenError('staff door', STAFF_PORT)).listen(STAFF_PORT, '127.0.0.1', () => {
   console.log(`  Staff door:     http://localhost:${STAFF_PORT}   (receptionist + kitchen screen, QR cards: /tables.html; this computer only)`);
+  console.log(UPI.id ? `  Pay with UPI ON: ${UPI.id} (${UPI.name})` : '  Pay with UPI off (set UPI_ID to the cafe\'s UPI ID to turn it on)');
   console.log(ONSITE.on ? `  Table GPS check ON: phones must be within ${ONSITE.radiusM} m of the cafe to join a table` : '  Table GPS check OFF (TABLE_GPS=off)');
   console.log(`  Privacy: customer phone numbers, addresses and locations are erased after ${PRIVACY_DAYS} days.`);
 });

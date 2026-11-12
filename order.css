@@ -141,3 +141,22 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .here-steps b { color: var(--ink); font-weight: 600; }
 .here-ok { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 6px 12px 6px 8px; border-radius: 999px; background: #e3f3e7; color: #126128; font-size: .88rem; font-weight: 600; }
 .here-ok svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* pay by UPI */
+.pay { margin-top: 18px; padding: 18px; background: #fff; border: 1.5px solid var(--line); border-radius: 16px; text-align: center; }
+.pay h2 { font-size: 1.4rem; }
+.pay > p { color: var(--muted); font-size: .92rem; margin: 4px 0 0; }
+.pay-btn { width: 100%; min-height: 56px; margin-top: 14px; border-radius: 14px; font-size: 1.08rem; background: #1d6b3a; border-color: #1d6b3a; }
+.pay-btn:hover { background: #155a2f; border-color: #155a2f; }
+.pay .pay-apps { font-size: .8rem; margin-top: 8px; }
+.pay-qr { margin-top: 14px; text-align: center; }
+.pay-qr summary { cursor: pointer; color: var(--red); font-weight: 600; font-size: .9rem; }
+.pay-qr .qr { width: 200px; height: 200px; margin: 12px auto 6px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+.pay-qr .qr img, .pay-qr .qr canvas { width: 100% !important; height: 100% !important; }
+.pay-qr .pay-id { font-size: .85rem; color: var(--muted); }
+.pay-qr .pay-id b { color: var(--ink); font-weight: 600; user-select: all; }
+.paid-btn { width: 100%; margin-top: 12px; min-height: 48px; border-radius: 12px; }
+.pay #payMsg:not(:empty) { margin-top: 12px; text-align: left; }
+.pay-state { margin-top: 18px; padding: 14px 16px; border-radius: 14px; font-weight: 600; text-align: center; }
+.pay-state.checking { background: #fff1d6; color: #5a3a00; }
+.pay-state.paid { background: #e3f3e7; color: #126128; }

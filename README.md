@@ -88,6 +88,22 @@ On the cafe computer, open `http://localhost:8081/tables.html`. The address on t
 
 **Going live:** the website is hosted separately on GitHub Pages, so change its two **Order online** links in `index.html` (they have `data-order-link`) from `online.html` to the full address, for example `https://order.goodluckcafe.in/online.html`.
 
+## Pay by UPI (optional, free)
+
+Start the server with the cafe's own UPI ID:
+```
+UPI_ID=goodluckcafe@okaxis PUBLIC_URL=https://order.goodluckcafe.in npm start
+```
+(Use the cafe's real UPI ID; it's on the cafe's GPay/PhonePe/Paytm business profile. Never a made-up one: money paid to it would go to whoever owns that ID.)
+
+Then:
+1. **Customer pays:** once an order is confirmed, the customer's order screen shows **Pay ₹X with UPI**. It opens their UPI app with the cafe's ID, the amount and a note like "Order 15 Table 10" filled in. There's also a QR code for paying from another phone.
+2. **Customer tells you:** after paying, they tap **I've paid**.
+3. **You check:** **Payment to check** appears under **Needs your OK**. Look in the cafe's UPI app for that amount and note, then tap **Received** or **Not received**.
+4. **Customer sees the result:** "Paid ✓", or a message to pay at the counter. Table tiles show "UPI paid ₹X · ₹Y to collect", and **Turn off** shows how much is still to collect.
+
+Without `UPI_ID` there's no UPI button, and customers pay in cash or UPI at the counter as before.
+
 ## Settings (optional)
 
 | Setting | Default | Meaning |
@@ -99,6 +115,7 @@ On the cafe computer, open `http://localhost:8081/tables.html`. The address on t
 | `PORT` / `STAFF_PORT` | 8080 / 8081 | Customer door / staff door |
 | `PUBLIC_URL` | (none) | The customers' address, used on the QR cards |
 | `PUBLIC_HOST` | `127.0.0.1` | Leave as is. `0.0.0.0` only to test with phones on the same network, never in the cafe |
+| `UPI_ID` / `UPI_NAME` | (none) / Good Luck Cafe | Turns on **Pay with UPI** with the cafe's UPI ID |
 | `TABLE_GPS` | on | Set `off` to skip the table location check, for example to demo the system away from the cafe |
 | `PRIVACY_DAYS` | 30 | Customer names, numbers, addresses and locations are erased after this many days |
 

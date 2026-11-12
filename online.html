@@ -11,7 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
-  <link rel="stylesheet" href="order.css?v=3">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+  <link rel="stylesheet" href="order.css?v=4">
 </head>
 <body data-mode="online">
 
@@ -104,6 +105,20 @@
     </div>
     <div class="lines" id="doneLines" style="margin-top:14px"></div>
     <div class="totals"><span id="doneTotalLabel">To pay</span><span class="money" id="doneTotal"></span></div>
+    <section class="pay" id="payBox" aria-labelledby="payTitle" hidden>
+      <h2 id="payTitle">Pay by UPI</h2>
+      <p id="payLead"></p>
+      <a class="btn pay-btn" id="payLink" href="#">Pay with UPI</a>
+      <p class="pay-apps">GPay · PhonePe · Paytm · BHIM · any UPI app</p>
+      <details class="pay-qr" id="payQrBox">
+        <summary>Paying from another phone? Show QR code</summary>
+        <div id="payQr" class="qr"></div>
+        <p class="pay-id">UPI ID: <b id="payId"></b></p>
+      </details>
+      <button class="btn btn-quiet paid-btn" id="paidBtn" type="button">I've paid</button>
+      <div id="payMsg" aria-live="polite"></div>
+    </section>
+    <p class="pay-state" id="payState" aria-live="polite" hidden></p>
     <section class="review" id="reviewBox" aria-labelledby="reviewTitle" hidden>
       <h2 id="reviewTitle">How was it?</h2>
       <p>Rate what you had. It helps other guests choose.</p>
@@ -126,6 +141,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=8"></script>
+<script src="order.js?v=10"></script>
 </body>
 </html>

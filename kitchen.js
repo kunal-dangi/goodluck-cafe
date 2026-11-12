@@ -25,7 +25,7 @@
       }, function () { throw new Error('Can\'t reach the order server. Check the connection.'); });
   }
 
-  var orders = new Map(), tables = new Map(), servedToday = 0, takings = 0;
+  var orders = new Map(), tables = new Map(), payChecks = new Map(), servedToday = 0, takings = 0;
   var soundOn = false, audio = null, firstLoad = true, stream = null;
 
   // ---------------- login ----------------
@@ -71,15 +71,17 @@
     }
     var left = t.joinUntil ? Math.max(1, Math.ceil((new Date(t.joinUntil) - Date.now()) / 60000)) : 0;
     var info = (t.phones || 0) + (t.phones === 1 ? ' phone' : ' phones') + (t.orders ? ' · ' + t.orders + (t.orders === 1 ? ' order · ' : ' orders · ') + rupees(t.bill) : '');
+    var due = (t.bill || 0) - (t.paid || 0);
     return el('div', { class: 'tile open' },
       el('div', { class: 'tile-top' }, el('span', { class: 'tile-num', text: t.table }), el('span', { class: 'tile-state', text: 'On' })),
       el('div', { class: 'tile-bill money', text: info }),
+      t.paid ? el('div', { class: 'tile-paid money', text: 'UPI paid ' + rupees(t.paid) + (due > 0 ? ' · ' + rupees(due) + ' to collect' : ' · all paid') }) : null,
       left ? el('div', { class: 'tile-join' }, el('b', { text: 'New phones can join' }), ' · ' + left + ' min left')
            : el('div', { class: 'tile-join', text: 'Locked to these phones' }),
       left ? null : el('button', { class: 'link', type: 'button', onclick: function () { tableAction(t.table, 'allow-join'); } }, 'Let more phones join'),
       el('div', { class: 'tile-actions' },
         el('button', { class: 'btn btn-ink', type: 'button', 'aria-label': 'Turn off table ' + t.table, onclick: function (e) {
-          twoTap(e.currentTarget, t.orders ? 'Tap again · bill ' + rupees(t.bill) : 'Tap again to turn off', function () { tableAction(t.table, 'close'); });
+          twoTap(e.currentTarget, !t.orders ? 'Tap again to turn off' : due > 0 ? 'Tap again · collect ' + rupees(due) : 'Tap again · all paid', function () { tableAction(t.table, 'close'); });
         } }, 'Turn off')));
   }
   function renderTables() {
@@ -136,9 +138,33 @@
       })),
       o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
       contact(o),
-      el('div', { class: 't-foot' }, el('span', { class: 'who', text: !isOnline(o) && o.name ? 'For ' + o.name : isOnline(o) ? 'Cash / UPI on ' + (o.kind === 'delivery' ? 'delivery' : 'pickup') : '' }), el('b', { class: 'money', text: rupees(o.total) })),
+      payChip(o),
+      el('div', { class: 't-foot' }, el('span', { class: 'who', text: !isOnline(o) && o.name ? 'For ' + o.name : isOnline(o) && !o.paidAt ? 'Cash / UPI on ' + (o.kind === 'delivery' ? 'delivery' : 'pickup') : '' }), el('b', { class: 'money', text: rupees(o.total) })),
       el('div', { class: 't-actions' }, ...acts));
   }
+  // ---------------- payments (UPI) ----------------
+  function payChip(o) {
+    if (o.paidAt) return el('p', { class: 'pay-chip paid', text: 'Paid ' + (o.paidMethod === 'cash' ? 'in cash' : 'by UPI') + ' ✓' });
+    if (o.payClaimedAt) return el('p', { class: 'pay-chip checking', text: 'Customer says paid by UPI · check below' });
+    return null;
+  }
+  function paymentCard(o, fresh) {
+    return el('article', { class: 'approve pay-check' + (fresh ? ' fresh' : '') },
+      el('div', { class: 'ap-head' }, el('span', { class: 't-table', text: where(o) }), el('span', { class: 't-meta', text: '#' + o.id })),
+      el('p', { class: 'ap-hint', text: 'Payment to check: customer says they paid ' + rupees(o.total) + ' by UPI.' }),
+      el('p', { class: 'ap-items', text: 'Open the cafe\'s UPI app and look for ' + rupees(o.total) + ' with the note "Order ' + o.id + '".' }),
+      el('div', { class: 't-foot' }, el('span', { class: 'who', text: o.name ? 'From ' + o.name : '' }), el('b', { class: 'money', text: rupees(o.total) })),
+      el('div', { class: 'ap-actions' },
+        el('button', { class: 'btn ok', type: 'button', onclick: function () { payResult(o, 'received'); } }, 'Received'),
+        el('button', { class: 'btn cancel', type: 'button', onclick: function (e) {
+          twoTap(e.currentTarget, 'Tap again', function () { payResult(o, 'not-received'); });
+        } }, 'Not received')));
+  }
+  function payResult(o, result) {
+    error('');
+    call('POST', '/api/kitchen/orders/' + o.id + '/payment', { result: result }).then(upsert).catch(function (e) { error(e.message); load(); });
+  }
+
   function approvalCard(o, fresh) {
     var online = isOnline(o);
     return el('article', { class: 'approve' + (online ? ' online' : '') + (fresh ? ' fresh' : '') },
@@ -161,8 +187,10 @@
   }
   function renderOrders(freshId) {
     var pending = [...orders.values()].filter(function (o) { return o.status === 'pending'; }).sort(function (a, b) { return a.id - b.id; });
-    $('approvals').hidden = !pending.length;
-    $('approveList').replaceChildren(...pending.map(function (o) { return approvalCard(o, o.id === freshId); }));
+    var checks = [...payChecks.values()].sort(function (a, b) { return a.payClaimedAt < b.payClaimedAt ? -1 : 1; });
+    $('approvals').hidden = !pending.length && !checks.length;
+    $('approveList').replaceChildren(...pending.map(function (o) { return approvalCard(o, o.id === freshId); })
+      .concat(checks.map(function (o) { return paymentCard(o, o.id === freshId); })));
     ['new', 'preparing', 'ready'].forEach(function (s) {
       var list = [...orders.values()].filter(function (o) { return o.status === s; }).sort(function (a, b) { return a.id - b.id; });
       $('n-' + s).textContent = list.length || '';
@@ -173,13 +201,15 @@
     $('today').replaceChildren('Today: ', el('b', { text: servedToday + ' served' }), ' · ', el('b', { class: 'money', text: rupees(takings) }));
   }
   function upsert(o) {
-    var was = orders.get(o.id);
+    var was = orders.get(o.id), wasCheck = payChecks.has(o.id);
+    if (o.payClaimedAt && !o.paidAt && o.status !== 'cancelled') payChecks.set(o.id, o); else payChecks.delete(o.id);
+    var newCheck = !wasCheck && payChecks.has(o.id);
     var isNew = (!was && (o.status === 'new' || o.status === 'pending')) || (o.status === 'new' && was && was.status === 'pending');
     if (o.status === 'served') { if (orders.has(o.id)) { servedToday++; takings += o.total; } orders.delete(o.id); }
     else if (o.status === 'cancelled') orders.delete(o.id);
     else orders.set(o.id, o);
-    renderOrders(isNew ? o.id : null);
-    if (isNew && !firstLoad) ding();
+    renderOrders(isNew || newCheck ? o.id : null);
+    if ((isNew || newCheck) && !firstLoad) ding();
   }
   function move(o, status) {
     error('');
@@ -190,6 +220,7 @@
   function load() {
     return Promise.all([call('GET', '/api/kitchen/orders'), call('GET', '/api/kitchen/tables')]).then(function (r) {
       orders = new Map(r[0].orders.map(function (o) { return [o.id, o]; }));
+      payChecks = new Map((r[0].payChecks || []).map(function (o) { return [o.id, o]; }));
       servedToday = r[0].servedToday; takings = r[0].takingsToday;
       tables = new Map(r[1].tables.map(function (t) { return [t.table, t]; }));
       renderOrders(null); renderTables();

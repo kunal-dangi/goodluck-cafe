@@ -105,6 +105,11 @@
     .ap-actions .ok { background: var(--ok); border-color: var(--ok); }
     .ap-actions .ok:hover { background: #156b2c; border-color: #156b2c; }
     .ap-hint { font-size: .88rem; font-weight: 600; color: #5a3a00; }
+    .approve.pay-check { border-top: 4px solid #1d6b3a; }
+    .pay-chip { justify-self: start; margin: 0 0 8px; padding: 3px 10px; border-radius: 999px; font-size: .82rem; font-weight: 600; display: inline-block; }
+    .pay-chip.paid { background: #e3f3e7; color: #126128; }
+    .pay-chip.checking { background: #fff1d6; color: #5a3a00; }
+    .tile-paid { font-size: .8rem; color: #126128; font-weight: 600; }
     .ap-loc { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 3px 10px; border-radius: 999px; background: #e3f3e7; color: #126128; font-size: .82rem; font-weight: 600; }
     .ap-loc::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #1d8a3a; }
     .t-table.online { color: var(--red); }
@@ -154,7 +159,7 @@
 
 <section class="approvals" id="approvals" aria-labelledby="apTitle" hidden>
   <h2 id="apTitle">Needs your OK</h2>
-  <p>Table orders: the first order from a phone. Approve it if someone is sitting at that table. Online orders: call the customer to confirm, then tap Confirmed.</p>
+  <p>Table orders: the first order from a phone, approve it if someone is sitting at that table. Online orders: call the customer to confirm. Payments: check the cafe's UPI app, then tap Received.</p>
   <div class="approve-list" id="approveList"></div>
 </section>
 
@@ -178,6 +183,6 @@
 </details>
 </div>
 
-<script src="kitchen.js?v=13"></script>
+<script src="kitchen.js?v=14"></script>
 </body>
 </html>

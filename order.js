@@ -365,6 +365,54 @@
       .then(function () { btn.disabled = false; btn.textContent = 'Send rating'; });
   });
 
+  // ---------- pay by UPI ----------
+  // The UPI app opens with the cafe's ID, the amount and the order number. The receptionist confirms the money arrived.
+  var lastClaim = {}; // order id -> was waiting for confirmation (to notice "not received")
+  function upiLink(o) {
+    var u = menu.upi, note = 'Order ' + o.id + (o.kind === 'delivery' ? ' delivery' : o.kind === 'pickup' ? ' pickup' : ' Table ' + o.table);
+    return 'upi://pay?pa=' + encodeURIComponent(u.id) + '&pn=' + encodeURIComponent(u.name) + '&am=' + Number(o.total).toFixed(2) +
+      '&cu=INR&tn=' + encodeURIComponent(note);
+  }
+  function renderPay(o) {
+    var box = $('payBox'), state = $('payState'), u = menu.upi;
+    var payable = o.status !== 'pending' && o.status !== 'cancelled';
+    state.hidden = true; state.className = 'pay-state';
+    if (o.paidAt) {
+      $('doneTotalLabel').textContent = 'Paid';
+      box.hidden = true; state.hidden = false; state.classList.add('paid');
+      state.textContent = 'Paid ✓ ' + rupees(o.total) + (o.paidMethod === 'cash' ? ' in cash' : ' by UPI') + '. Thank you!';
+    } else if (o.payClaimedAt) {
+      box.hidden = true; state.hidden = false; state.classList.add('checking');
+      state.textContent = 'Thanks! The cafe is checking your UPI payment of ' + rupees(o.total) + '. This takes a minute.';
+    } else {
+      box.hidden = !u || !payable;
+      if (!box.hidden) {
+        var table = !o.kind || o.kind === 'table';
+        $('payLead').textContent = 'Pay ' + rupees(o.total) + ' straight to ' + u.name + '. ' + (table ? 'You can also pay at the counter.' : 'Or pay in cash ' + (o.kind === 'delivery' ? 'on delivery.' : 'at pickup.'));
+        $('payLink').href = upiLink(o);
+        $('payLink').textContent = 'Pay ' + rupees(o.total) + ' with UPI';
+        $('payId').textContent = u.id;
+        if ($('payQr').dataset.link !== upiLink(o)) { $('payQr').dataset.link = upiLink(o); $('payQr').replaceChildren(); $('payQrBox').open = false; }
+        if (lastClaim[o.id]) $('payMsg').replaceChildren(el('p', { class: 'notice warn', text: 'The cafe couldn\'t find your payment yet. If money left your account, show the receipt at the counter; otherwise try again or pay at the counter.' }));
+        else $('payMsg').replaceChildren();
+      }
+    }
+    lastClaim[o.id] = !!o.payClaimedAt && !o.paidAt;
+    return !!o.payClaimedAt && !o.paidAt; // still waiting: keep checking
+  }
+  $('payQrBox').addEventListener('toggle', function () {
+    var box = $('payQr');
+    if (!this.open || box.childElementCount || !window.QRCode) return;
+    new QRCode(box, { text: box.dataset.link, width: 400, height: 400, colorDark: '#1f1a17', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  });
+  $('paidBtn').addEventListener('click', function () {
+    var btn = this; btn.disabled = true;
+    api('/api/orders/' + current.id + '/paid?t=' + encodeURIComponent(current.token), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function (o) { renderOrder(o); keepPolling(); })
+      .catch(function (e) { $('payMsg').replaceChildren(el('p', { class: 'notice error', role: 'alert', text: e.message })); })
+      .then(function () { btn.disabled = false; });
+  });
+
   // ---------- after ordering ----------
   var STATUS_TEXT = {
     pending: 'Waiting for the counter to confirm your first order. This only happens once per phone.',
@@ -395,6 +443,7 @@
       $('doneTotalLabel').textContent = d ? 'To pay on delivery' : 'To pay at pickup';
     } else {
       $('doneTable').textContent = 'Table ' + o.table + (o.name ? ' · ' + o.name : '');
+      $('doneTotalLabel').textContent = 'To pay at the counter';
     }
     var at = ORDER.indexOf(o.status);
     document.querySelectorAll('#steps li').forEach(function (li, idx) {
@@ -409,7 +458,17 @@
       .concat(o.note ? [el('p', { class: 'line line-sub', text: 'Note: ' + o.note })] : []));
     $('doneTotal').textContent = rupees(o.total);
     renderReview(o);
-    return o.status === 'served' || o.status === 'cancelled';
+    var waitingPay = renderPay(o);
+    return (o.status === 'served' || o.status === 'cancelled') && !waitingPay;
+  }
+  function keepPolling() {
+    if (poll || !current) return;
+    var id = current.id, token = current.token;
+    poll = setInterval(function () {
+      api('/api/orders/' + id + '?t=' + encodeURIComponent(token)).then(function (o) {
+        if (renderOrder(o) && poll) { clearInterval(poll); poll = null; }
+      }).catch(function () {});
+    }, 5000);
   }
   function showOrder(id, token, known) {
     current = { id: id, token: token };
