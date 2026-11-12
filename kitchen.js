@@ -163,7 +163,7 @@
       .sort(function (a, b) { return a.updatedAt < b.updatedAt ? 1 : -1; });
     $('cancels').hidden = !list.length;
     $('cancelList').replaceChildren(...list.map(function (o) {
-      var by = o.cancelledBy === 'kitchen' ? 'the kitchen' : 'reception';
+      var by = o.cancelledBy === 'kitchen' ? 'the kitchen' : o.cancelledBy === 'customer' ? 'the customer' : 'reception';
       return el('li', { class: o.id === freshId ? 'fresh' : '' },
         el('div', { class: 'cx-what' },
           el('div', {}, el('b', { text: where(o) + ' · #' + o.id }), ' cancelled by ' + by),

@@ -173,3 +173,11 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .cx-actions { display: flex; gap: 10px; margin-top: 10px; }
 .cx-actions .btn { min-height: 40px; background: #fff; border-color: #fff; color: #b3191e; }
 .cx-actions .btn-quiet { background: transparent; color: #fff; border-color: rgba(255,255,255,.7); }
+
+/* customer undo + phone hint */
+.undo { margin-top: 14px; text-align: center; }
+.undo-btn { width: 100%; border-color: var(--red); color: var(--red); }
+.undo-btn.armed { background: var(--red); color: #fff; }
+.undo-hint { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
+.undo #undoMsg:not(:empty) { margin-top: 10px; text-align: left; }
+.field-hint { margin: 6px 0 0; font-size: .85rem; color: var(--muted); line-height: 1.4; }

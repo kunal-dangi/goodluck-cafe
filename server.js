@@ -518,7 +518,7 @@ async function api(req, res, url) {
 
   // Customer: track one order, and rate it once it's served. Both need the token given when the order
   // was placed, so nobody can look at or rate someone else's order.
-  if (p[1] === 'orders' && p[2] && (p.length === 3 || p[3] === 'review' || p[3] === 'paid')) {
+  if (p[1] === 'orders' && p[2] && (p.length === 3 || p[3] === 'review' || p[3] === 'paid' || p[3] === 'cancel')) {
     const r = q.order.get(Number(p[2]));
     const t = url.searchParams.get('t') || '';
     if (!r || t.length !== r.token.length || !crypto.timingSafeEqual(Buffer.from(t), Buffer.from(r.token))) return fail(res, 404, 'not-found', 'Order not found.');
@@ -535,6 +535,19 @@ async function api(req, res, url) {
       q.claimPaid.run(now(), r.id);
       const order = orderOut(q.order.get(r.id));
       broadcast('order', order);
+      return send(res, 200, { ...order, reviewed });
+    }
+
+    // Customer undoes a mistake: only before the kitchen starts, and not once money is involved (refunds go through the cafe).
+    if (req.method === 'POST' && p[3] === 'cancel') {
+      if (r.status === 'cancelled') return send(res, 200, { ...orderOut(r), reviewed });
+      if (r.status !== 'pending' && r.status !== 'new') return fail(res, 409, 'started', 'The kitchen has already started on this order, so it can\'t be cancelled here. Please ' + (r.kind === 'table' ? 'ask at the counter.' : 'call the cafe.'));
+      if (r.paid_at || r.pay_claimed_at) return fail(res, 409, 'paid', 'You\'ve paid for this order, so please ' + (r.kind === 'table' ? 'ask at the counter' : 'call the cafe') + ' to cancel it and get your refund.');
+      q.setCancelled.run('customer', now(), r.id);
+      staffLog('Cancelled by customer', orderLabel(r));
+      const order = orderOut(q.order.get(r.id));
+      broadcast('order', order);
+      if (r.table_no) broadcast('table', tableView(r.table_no));
       return send(res, 200, { ...order, reviewed });
     }
 

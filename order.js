@@ -424,6 +424,7 @@
   // ---------- the cafe cancelled an order: tell the customer wherever they are ----------
   function cancelText(o) {
     var table = !o.kind || o.kind === 'table';
+    if (o.cancelledBy === 'customer') return 'You cancelled order #' + o.id + '. Nothing to pay for it.';
     return (o.cancelledBy === 'kitchen' ? 'Sorry, the kitchen couldn\'t make order #' + o.id + ' and had to cancel it.' : 'Sorry, the cafe cancelled order #' + o.id + '.') +
       (o.paidAt ? ' You paid ' + rupees(o.total) + ', so please ask ' + (table ? 'at the counter' : 'the cafe') + ' for your refund.'
         : table ? ' Please ask at the counter if you have questions.' : ' If that\'s a mistake, please call the cafe.');
@@ -444,7 +445,7 @@
     recentOrders().forEach(function (m) {
       if (watched[m.id] === 'served' || watched[m.id] === 'cancelled') return;
       api('/api/orders/' + m.id + '?t=' + encodeURIComponent(m.t)).then(function (o) {
-        if (o.status === 'cancelled' && watched[m.id] !== 'cancelled') showCancelAlert(o, m.t);
+        if (o.status === 'cancelled' && watched[m.id] !== 'cancelled' && o.cancelledBy !== 'customer') showCancelAlert(o, m.t);
         watched[m.id] = o.status;
       }).catch(function () {});
     });
@@ -496,6 +497,7 @@
       .concat(o.note ? [el('p', { class: 'line line-sub', text: 'Note: ' + o.note })] : []));
     $('doneTotal').textContent = rupees(o.total);
     renderReview(o);
+    renderUndo(o);
     var waitingPay = renderPay(o);
     return (o.status === 'served' || o.status === 'cancelled') && !waitingPay;
   }
@@ -509,8 +511,42 @@
       }).catch(function () {});
     }, 5000);
   }
+  // Customer's own "Cancel this order": until the kitchen starts, and not once paid (refunds go through the cafe).
+  function renderUndo(o) {
+    var can = (o.status === 'pending' || o.status === 'new') && !o.paidAt && !o.payClaimedAt;
+    $('undoBox').hidden = !can;
+    if (!can) disarmUndo();
+  }
+  function disarmUndo() {
+    var b = $('undoBtn');
+    clearTimeout(b.dataset.armed); delete b.dataset.armed;
+    b.classList.remove('armed'); b.textContent = 'Cancel this order'; b.disabled = false;
+  }
+  $('undoBtn').addEventListener('click', function () {
+    var b = this, o = current;
+    if (!o) return;
+    $('undoMsg').replaceChildren();
+    if (!b.dataset.armed) { // first tap arms it, so a stray tap does nothing
+      b.classList.add('armed'); b.textContent = 'Tap again to cancel order #' + o.id;
+      b.dataset.armed = setTimeout(disarmUndo, 4000);
+      return;
+    }
+    clearTimeout(b.dataset.armed); b.disabled = true; b.textContent = 'Cancelling…';
+    api('/api/orders/' + o.id + '/cancel?t=' + encodeURIComponent(o.token), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function (r) {
+        ack(r.id); watched[r.id] = 'cancelled';
+        disarmUndo();
+        if (current && current.id === r.id) { renderOrder(r); if (poll) { clearInterval(poll); poll = null; } }
+      })
+      .catch(function (e) {
+        disarmUndo();
+        $('undoMsg').replaceChildren(el('p', { class: 'notice error', role: 'alert', text: e.message }));
+        if (current && current.id === o.id) api('/api/orders/' + o.id + '?t=' + encodeURIComponent(o.token)).then(renderOrder).catch(function () {});
+      });
+  });
   function showOrder(id, token, known) {
     if (poll) { clearInterval(poll); poll = null; } // stop refreshing the order shown before
+    $('undoMsg').replaceChildren(); disarmUndo();
     current = { id: id, token: token };
     show('Done');
     renderPast(id);
