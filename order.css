@@ -177,7 +177,7 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 /* customer undo + phone hint */
 .undo { margin-top: 14px; text-align: center; }
 .undo-btn { width: 100%; border-color: var(--red); color: var(--red); }
-.undo-btn.armed { background: var(--red); color: #fff; }
+.undo .undo-btn.armed, .undo .undo-btn.armed:hover { background: var(--red); border-color: var(--red); color: #fff; }
 .undo-hint { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
 .undo #undoMsg:not(:empty) { margin-top: 10px; text-align: left; }
 .field-hint { margin: 6px 0 0; font-size: .85rem; color: var(--muted); line-height: 1.4; }
