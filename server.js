@@ -12,6 +12,7 @@
 //   PUBLIC_HOST     127.0.0.1           customer door listens here; the tunnel connects to it locally.
 //                                       Use 0.0.0.0 only for testing with phones on the same network.
 //   PUBLIC_URL      ""                  the customers' address, e.g. https://order.goodluckcafe.in (used on QR cards)
+//   Online orders (delivery / pickup, pay on delivery): within DELIVERY_KM of the cafe, fee by distance (see DELIVERY below).
 //   TABLES          12                  number of tables
 //   ORDER_HOURS     "06:00-23:30"       India time, or "always"
 //   SESSION_HOURS   4                   a table left switched on turns itself off after this long
@@ -34,6 +35,13 @@ const TABLES = Number(process.env.TABLES) || 12;
 const ORDER_HOURS = process.env.ORDER_HOURS || '06:00-23:30';
 const SESSION_HOURS = Number(process.env.SESSION_HOURS) || 4;
 const JOIN_MINUTES = Number(process.env.JOIN_MINUTES) || 10;
+// Online orders. The cafe's spot is the pin on its Google Maps listing.
+const DELIVERY = {
+  cafe: { lat: 18.6195977, lng: 73.8746089 },
+  maxKm: 10,
+  fees: [[3, 0], [6, 20], [10, 40]], // up to 3 km free, up to 6 km ₹20, up to 10 km ₹40
+  maxAccuracyM: 1500,                 // phone location must be at least this precise
+};
 // The customer door only sees the tunnel (it listens on this computer only), so it can trust the
 // visitor address and https flag the tunnel adds. With PUBLIC_HOST=0.0.0.0 (testing) it can't.
 const TUNNEL_ONLY = PUBLIC_HOST === '127.0.0.1' || PUBLIC_HOST === 'localhost' || PUBLIC_HOST === '::1';
@@ -98,6 +106,10 @@ db.exec(`
 const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
 if (!cols('orders').includes('session_id')) db.exec('ALTER TABLE orders ADD COLUMN session_id INTEGER');
 if (!cols('orders').includes('seat_id')) db.exec('ALTER TABLE orders ADD COLUMN seat_id INTEGER');
+for (const [c, def] of [['kind', "TEXT NOT NULL DEFAULT 'table'"], ['phone', "TEXT NOT NULL DEFAULT ''"], ['address', "TEXT NOT NULL DEFAULT ''"],
+  ['lat', 'REAL'], ['lng', 'REAL'], ['distance_m', 'INTEGER'], ['fee', 'INTEGER NOT NULL DEFAULT 0']]) {
+  if (!cols('orders').includes(c)) db.exec(`ALTER TABLE orders ADD COLUMN ${c} ${def}`);
+}
 if (!cols('table_sessions').includes('join_until')) db.exec('ALTER TABLE table_sessions ADD COLUMN join_until TEXT');
 if (cols('seats').length && !cols('seats').includes('approved')) db.exec('DROP TABLE seats'); // old PIN-era seats: temporary data
 db.exec(`CREATE TABLE IF NOT EXISTS seats (
@@ -111,6 +123,9 @@ const q = {
   servedSince: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount FROM orders WHERE status = 'served' AND created_at >= ?`),
   setStatus: db.prepare('UPDATE orders SET status = ?, updated_at = ? WHERE id = ?'),
   pendingOfSeat: db.prepare(`SELECT * FROM orders WHERE seat_id = ? AND status = 'pending'`),
+  insertOnline: db.prepare(`INSERT INTO orders (token, table_no, kind, items, note, name, phone, address, lat, lng, distance_m, fee, total, status, created_at, updated_at)
+                            VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`),
+  pendingOfPhone: db.prepare(`SELECT COUNT(*) n FROM orders WHERE phone = ? AND status = 'pending'`),
   bill: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount FROM orders WHERE session_id = ? AND status NOT IN ('cancelled','pending')`),
   openSession: db.prepare(`SELECT * FROM table_sessions WHERE table_no = ? AND closed_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1`),
   allOpen: db.prepare(`SELECT * FROM table_sessions WHERE closed_at IS NULL AND expires_at > ?`),
@@ -133,8 +148,9 @@ const q = {
 const now = () => new Date().toISOString();
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const newToken = () => crypto.randomBytes(24).toString('base64url');
-const orderOut = (r) => r && { id: r.id, table: r.table_no, items: JSON.parse(r.items), note: r.note, name: r.name,
-  total: r.total, status: r.status, createdAt: r.created_at, updatedAt: r.updated_at };
+const orderOut = (r) => r && { id: r.id, kind: r.kind || 'table', table: r.table_no, items: JSON.parse(r.items), note: r.note, name: r.name,
+  phone: r.phone || '', address: r.address || '', lat: r.lat, lng: r.lng, distanceKm: r.distance_m == null ? null : Math.round(r.distance_m / 100) / 10,
+  fee: r.fee || 0, total: r.total, status: r.status, createdAt: r.created_at, updatedAt: r.updated_at };
 
 // Allowed moves for staff. Anything else is refused.
 // 'pending' (a new phone's first order) only moves through approve / reject below.
@@ -242,6 +258,37 @@ function isOpen() {
   const m = indiaNow().minutes;
   return a <= b ? m >= a && m < b : m >= a || m < b;
 }
+// Prices come from menu.json only. Returns { lines, total } or { error, message }.
+function priceItems(list) {
+  if (!Array.isArray(list) || list.length === 0) return { error: 'empty', message: 'Your order is empty.' };
+  if (list.length > 40) return { error: 'too-many', message: 'That order is too large to place online. Please call the cafe.' };
+  const merged = new Map();
+  for (const it of list) {
+    const item = items.get(it && it.id);
+    const qty = Number(it && it.qty);
+    if (!item || item.price == null) return { error: 'item', message: 'One of the items is no longer on the menu. Please refresh.' };
+    if (!Number.isInteger(qty) || qty < 1 || qty > 20) return { error: 'qty', message: 'Quantities must be between 1 and 20.' };
+    merged.set(item.id, Math.min(20, (merged.get(item.id) || 0) + qty));
+  }
+  const lines = [...merged].map(([id, qty]) => { const i = items.get(id); return { id, name: i.name, qty, price: i.price, veg: i.veg }; });
+  return { lines, total: lines.reduce((sum, l) => sum + l.price * l.qty, 0) };
+}
+// Straight-line distance in metres (haversine).
+function distanceM(a, b) {
+  const R = 6371e3, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const deliveryFee = (km) => { for (const [upTo, fee] of DELIVERY.fees) if (km <= upTo) return fee; return null; };
+// Indian mobile number -> 10 digits, or '' if it isn't one.
+function mobile(raw) {
+  let d = String(raw || '').replace(/\D/g, '');
+  if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+  if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+  return /^[6-9]\d{9}$/.test(d) ? d : '';
+}
+
 const startOfIndiaDay = () => new Date(`${indiaNow().date}T00:00:00+05:30`).toISOString();
 
 // ======================================================================
@@ -278,7 +325,8 @@ async function api(req, res, url) {
 
   // ---------------- public ----------------
   if (req.method === 'GET' && url.pathname === '/api/menu') {
-    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL });
+    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL,
+      delivery: { cafe: DELIVERY.cafe, maxKm: DELIVERY.maxKm, fees: DELIVERY.fees, maxAccuracyM: DELIVERY.maxAccuracyM } });
   }
 
   // Table status for the customer page.
@@ -325,18 +373,9 @@ async function api(req, res, url) {
     if (keys.some(([k, max]) => failures(k, 600e3) >= max)) {
       return fail(res, 429, 'slow-down', 'That\'s a lot of orders in a short time. Please ask at the counter if you need more.');
     }
-    if (!Array.isArray(body.items) || body.items.length === 0) return fail(res, 400, 'empty', 'Your order is empty.');
-    if (body.items.length > 40) return fail(res, 400, 'too-many', 'That order is too large to place online. Please ask at the counter.');
-    const merged = new Map();
-    for (const it of body.items) {
-      const item = items.get(it && it.id);
-      const qty = Number(it && it.qty);
-      if (!item || item.price == null) return fail(res, 400, 'item', 'One of the items is no longer on the menu. Please refresh.');
-      if (!Number.isInteger(qty) || qty < 1 || qty > 20) return fail(res, 400, 'qty', 'Quantities must be between 1 and 20.');
-      merged.set(item.id, Math.min(20, (merged.get(item.id) || 0) + qty));
-    }
-    const lines = [...merged].map(([id, qty]) => { const i = items.get(id); return { id, name: i.name, qty, price: i.price, veg: i.veg }; });
-    const total = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
+    const priced = priceItems(body.items);
+    if (priced.error) return fail(res, 400, priced.error, priced.message);
+    const { lines, total } = priced;
     const status = mine.seat.approved ? 'new' : 'pending';
     const t = now(), token = crypto.randomBytes(12).toString('hex');
     const { lastInsertRowid } = q.insertOrder.run(token, table, JSON.stringify(lines), clean(body.note, 200), clean(body.name, 40), total, status, t, t, s.id, mine.seat.id);
@@ -344,6 +383,50 @@ async function api(req, res, url) {
     const order = orderOut(q.order.get(lastInsertRowid));
     broadcast('order', order);
     broadcast('table', tableView(table));
+    return send(res, 201, { ...order, token });
+  }
+
+  // Online order: delivery (within DELIVERY.maxKm, by the phone's location) or pickup. Pay on delivery / at pickup.
+  // Every online order waits for the receptionist to call the customer and confirm it.
+  if (req.method === 'POST' && url.pathname === '/api/online-orders') {
+    if (!isOpen()) return fail(res, 409, 'closed', 'The kitchen is closed right now. Orders open again at 6:00 am.');
+    const body = await readJson(req);
+    const kind = body.kind === 'delivery' || body.kind === 'pickup' ? body.kind : null;
+    if (!kind) return fail(res, 400, 'kind', 'Choose delivery or pickup.');
+    const name = clean(body.name, 40);
+    if (name.length < 2) return fail(res, 400, 'name', 'Please enter your name.');
+    const phone = mobile(body.phone);
+    if (!phone) return fail(res, 400, 'phone', 'Please enter a valid 10-digit mobile number. We\'ll call it to confirm your order.');
+    // Fake-order guard: 3 online orders per mobile number and 10 per visitor address per hour; 2 unconfirmed per number.
+    // (The address limit is loose: mobile networks put many people behind one address.)
+    const keys = [[`onl:${phone}`, 3], [`onlip:${ip}`, 10]];
+    if (keys.some(([k, max]) => failures(k, 3600e3) >= max)) return fail(res, 429, 'slow-down', 'Too many orders in a short time. Please call the cafe.');
+    if (q.pendingOfPhone.get(phone).n >= 2) return fail(res, 429, 'wait-approval', 'Your earlier order is still waiting to be confirmed. We\'ll call you shortly.');
+    const priced = priceItems(body.items);
+    if (priced.error) return fail(res, 400, priced.error, priced.message);
+
+    let address = '', lat = null, lng = null, dist = null, fee = 0;
+    if (kind === 'delivery') {
+      address = clean(body.address, 300);
+      if (address.length < 10) return fail(res, 400, 'address', 'Please enter your full address: flat or house, building, street and a landmark.');
+      lat = Number(body.lat); lng = Number(body.lng);
+      const acc = Number(body.accuracy);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+        return fail(res, 400, 'location', 'We need your location to check you\'re within delivery range. Tap "Use my location".');
+      }
+      if (!Number.isFinite(acc) || acc <= 0 || acc > DELIVERY.maxAccuracyM) {
+        return fail(res, 400, 'accuracy', 'Your location isn\'t precise enough. Turn on GPS / location services and try again, or choose pickup.');
+      }
+      dist = distanceM(DELIVERY.cafe, { lat, lng });
+      fee = deliveryFee(dist / 1000);
+      if (fee == null) return fail(res, 400, 'too-far', `Sorry, you're ${(dist / 1000).toFixed(1)} km away. We deliver within ${DELIVERY.maxKm} km. You can choose pickup instead.`);
+    }
+    const t = now(), token = crypto.randomBytes(12).toString('hex');
+    const { lastInsertRowid } = q.insertOnline.run(token, kind, JSON.stringify(priced.lines), clean(body.note, 200), name, phone, address,
+      lat, lng, dist == null ? null : Math.round(dist), fee, priced.total + fee, t, t);
+    for (const [k] of keys) countFail(k, 3600e3);
+    const order = orderOut(q.order.get(lastInsertRowid));
+    broadcast('order', order);
     return send(res, 201, { ...order, token });
   }
 
@@ -386,13 +469,14 @@ async function api(req, res, url) {
     if (req.method === 'POST' && p[2] === 'orders' && p[3] && (p[4] === 'approve' || p[4] === 'reject')) {
       const r = q.order.get(Number(p[3]));
       if (!r || r.status !== 'pending') return fail(res, 409, 'status', 'That order isn\'t waiting for approval any more.');
+      // (online orders have no seat: only this one order is approved / rejected)
       const seat = r.seat_id && q.seatById.get(r.seat_id);
       const waiting = seat ? q.pendingOfSeat.all(seat.id) : [r];
       const to = p[4] === 'approve' ? 'new' : 'cancelled';
       for (const o of waiting) q.setStatus.run(to, now(), o.id);
       if (seat) p[4] === 'approve' ? q.approveSeat.run(seat.id) : q.dropSeat.run(seat.id);
       for (const o of waiting) broadcast('order', orderOut(q.order.get(o.id)));
-      broadcast('table', tableView(r.table_no));
+      if (r.table_no) broadcast('table', tableView(r.table_no));
       return send(res, 200, orderOut(q.order.get(r.id)));
     }
     if (req.method === 'PATCH' && p[2] === 'orders' && p[3]) {
@@ -404,7 +488,7 @@ async function api(req, res, url) {
       q.setStatus.run(status, now(), id);
       const order = orderOut(q.order.get(id));
       broadcast('order', order);
-      if (status === 'cancelled') broadcast('table', tableView(r.table_no));
+      if (status === 'cancelled' && r.table_no) broadcast('table', tableView(r.table_no));
       return send(res, 200, order);
     }
     if (req.method === 'GET' && p[2] === 'tables') {
@@ -459,7 +543,7 @@ const PRIVATE = new Set(['server.js', 'package.json', 'package-lock.json']);
 // Strict browser rules for the app pages (no inline scripts, no framing).
 const APP_CSP = ["default-src 'self'", "script-src 'self' https://cdnjs.cloudflare.com", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src https://fonts.gstatic.com", "img-src 'self' data:", "connect-src 'self'", "frame-ancestors 'none'", "base-uri 'none'", "form-action 'self'", "object-src 'none'"].join('; ');
-const APP_PAGES = new Set(['order.html', 'kitchen.html', 'tables.html']);
+const APP_PAGES = new Set(['order.html', 'online.html', 'kitchen.html', 'tables.html']);
 const STAFF_ONLY = new Set(['kitchen.html', 'kitchen.js', 'tables.html', 'tables.js']); // never on the customer door
 
 function serveStatic(req, res, url) {
@@ -489,7 +573,7 @@ function handler(side) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'same-origin');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
     if (isHttps(req)) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
     let url;
     try { url = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, { error: 'bad-request', message: 'Bad request.' }); }

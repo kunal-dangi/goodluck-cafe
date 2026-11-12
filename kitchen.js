@@ -89,19 +89,35 @@
   function minutesAgo(iso) { return Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); }
   function ago(iso) { var m = minutesAgo(iso); return m < 1 ? 'just now' : m === 1 ? '1 min ago' : m + ' min ago'; }
 
+  // Online orders (delivery / pickup) vs table orders
+  var isOnline = function (o) { return o.kind === 'delivery' || o.kind === 'pickup'; };
+  function where(o) { return o.kind === 'delivery' ? 'Delivery' : o.kind === 'pickup' ? 'Pickup' : 'Table ' + o.table; }
+  function whereLong(o) { return o.kind === 'delivery' ? 'delivery to ' + o.name : o.kind === 'pickup' ? 'pickup by ' + o.name : 'table ' + o.table; }
+  function prettyPhone(p) { return p ? p.slice(0, 5) + ' ' + p.slice(5) : ''; }
+  // Name, tap-to-call number, address and map link for online orders.
+  function contact(o) {
+    if (!isOnline(o)) return null;
+    var maps = o.lat != null ? 'https://www.google.com/maps/search/?api=1&query=' + o.lat + ',' + o.lng : null;
+    return el('div', { class: 'contact' },
+      el('div', {}, el('b', { text: o.name }), ' · ', el('a', { href: 'tel:+91' + o.phone, text: prettyPhone(o.phone) })),
+      o.kind === 'delivery' ? el('div', { class: 'addr', text: o.address }) : null,
+      o.kind === 'delivery' ? el('div', { class: 'addr-meta' }, (o.distanceKm != null ? o.distanceKm + ' km · ' : '') + 'delivery ' + (o.fee ? rupees(o.fee) : 'free') + ' · ',
+        maps ? el('a', { href: maps, target: '_blank', rel: 'noopener', text: 'Open in Maps' }) : null) : null);
+  }
   function ticket(o, fresh) {
     var acts = (ACTIONS[o.status] || []).map(function (a) {
-      return el('button', { class: 'btn go', type: 'button', onclick: function () { move(o, a[0]); } }, a[1]);
+      var label = a[0] === 'served' && o.kind === 'delivery' ? 'Delivered' : a[0] === 'served' && o.kind === 'pickup' ? 'Collected' : a[1];
+      return el('button', { class: 'btn go', type: 'button', onclick: function () { move(o, a[0]); } }, label);
     });
     if (o.status === 'new' || o.status === 'preparing') {
       acts.push(el('button', { class: 'btn cancel', type: 'button', onclick: function () {
-        if (confirm('Cancel order #' + o.id + ' for table ' + o.table + '? The customer will see it was cancelled.')) move(o, 'cancelled');
+        if (confirm('Cancel order #' + o.id + ' (' + whereLong(o) + ')? The customer will see it was cancelled.')) move(o, 'cancelled');
       } }, 'Cancel'));
     }
     var mins = minutesAgo(o.createdAt);
     return el('article', { class: 'ticket' + (fresh ? ' fresh' : ''), 'data-status': o.status, 'data-id': o.id },
       el('div', { class: 't-head' },
-        el('span', { class: 't-table', text: 'Table ' + o.table }),
+        el('span', { class: 't-table' + (isOnline(o) ? ' online' : ''), text: where(o) }),
         el('span', { class: 't-meta' }, el('b', { text: '#' + o.id }), el('span', { class: mins >= 15 && o.status !== 'ready' ? 'late' : '', 'data-ago': o.createdAt, text: ago(o.createdAt) }))),
       el('ul', { class: 't-items' }, ...o.items.map(function (l) {
         return el('li', {}, el('span', { class: 'q', text: l.qty + '×' }),
@@ -109,19 +125,25 @@
           el('span', { text: l.name }));
       })),
       o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
-      el('div', { class: 't-foot' }, el('span', { class: 'who', text: o.name ? 'For ' + o.name : '' }), el('b', { class: 'money', text: rupees(o.total) })),
+      contact(o),
+      el('div', { class: 't-foot' }, el('span', { class: 'who', text: !isOnline(o) && o.name ? 'For ' + o.name : isOnline(o) ? 'Cash / UPI on ' + (o.kind === 'delivery' ? 'delivery' : 'pickup') : '' }), el('b', { class: 'money', text: rupees(o.total) })),
       el('div', { class: 't-actions' }, ...acts));
   }
   function approvalCard(o, fresh) {
-    return el('article', { class: 'approve' + (fresh ? ' fresh' : '') },
-      el('div', { class: 'ap-head' }, el('span', { class: 't-table', text: 'Table ' + o.table }), el('span', { class: 't-meta', 'data-ago': o.createdAt, text: ago(o.createdAt) })),
+    var online = isOnline(o);
+    return el('article', { class: 'approve' + (online ? ' online' : '') + (fresh ? ' fresh' : '') },
+      el('div', { class: 'ap-head' }, el('span', { class: 't-table', text: where(o) }), el('span', { class: 't-meta', 'data-ago': o.createdAt, text: ago(o.createdAt) })),
+      online ? el('p', { class: 'ap-hint', text: 'Call ' + prettyPhone(o.phone) + ' to confirm before cooking.' }) : null,
       el('div', { class: 'ap-items', text: o.items.map(function (l) { return l.qty + '× ' + l.name; }).join(', ') }),
       o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
-      el('div', { class: 't-foot' }, el('span', { class: 'who', text: o.name ? 'For ' + o.name : 'New phone' }), el('b', { class: 'money', text: rupees(o.total) })),
+      contact(o),
+      el('div', { class: 't-foot' }, el('span', { class: 'who', text: online ? '' : o.name ? 'For ' + o.name : 'New phone' }), el('b', { class: 'money', text: rupees(o.total) })),
       el('div', { class: 'ap-actions' },
-        el('button', { class: 'btn ok', type: 'button', onclick: function () { decide(o, 'approve'); } }, 'Approve'),
+        el('button', { class: 'btn ok', type: 'button', onclick: function () { decide(o, 'approve'); } }, online ? 'Confirmed on call' : 'Approve'),
         el('button', { class: 'btn cancel', type: 'button', onclick: function () {
-          if (confirm('Reject this order for table ' + o.table + '? The phone will be removed from the table.')) decide(o, 'reject');
+          var q = online ? 'Reject this ' + o.kind + ' order from ' + o.name + '? They\'ll see it was cancelled.'
+            : 'Reject this order for table ' + o.table + '? The phone will be removed from the table.';
+          if (confirm(q)) decide(o, 'reject');
         } }, 'Reject')));
   }
   function decide(o, what) {

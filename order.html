@@ -11,95 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
-  <style>
-    body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
-    .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
-
-    /* header */
-    .bar { position: sticky; top: 0; z-index: 20; background: var(--cream); border-bottom: 1px solid var(--line); }
-    .bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 60px; }
-    .table-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--ink); color: #fff; font-size: .85rem; font-weight: 600; white-space: nowrap; }
-    .orders-link { border: 0; background: none; color: var(--red); font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: underline; text-underline-offset: .2em; }
-
-    /* menu view */
-    .intro { padding: 20px 0 6px; }
-    .intro h1 { font-size: 1.9rem; margin-bottom: 4px; }
-    .intro p { color: var(--muted); font-size: .95rem; }
-    .tools { display: flex; gap: 10px; align-items: center; padding: 14px 0 4px; }
-    .search { flex: 1; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; background: #fff; border: 1.5px solid var(--line); border-radius: 10px; }
-    .search:focus-within { border-color: var(--ink); }
-    .search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; }
-    .search .icon { color: var(--muted); }
-    .veg-toggle { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; font-size: .9rem; font-weight: 500; white-space: nowrap; cursor: pointer; }
-    .veg-toggle input { width: 18px; height: 18px; accent-color: var(--veg); }
-
-    .chips { position: sticky; top: 60px; z-index: 15; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 16px; margin: 6px -16px 0; background: var(--cream); border-bottom: 1px solid var(--line); }
-    .chips::-webkit-scrollbar { display: none; }
-    .chips a { flex: none; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: .84rem; font-weight: 500; color: var(--ink); text-decoration: none; }
-    .chips a.on { background: var(--ink); border-color: var(--ink); color: #fff; }
-
-    .section { padding-top: 22px; scroll-margin-top: 120px; }
-    .section h2 { font-size: 1.35rem; color: var(--red); padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
-    .item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-    .item .mark { align-self: flex-start; margin-top: 4px; }
-    .item-main { flex: 1; min-width: 0; }
-    .item-name { font-weight: 500; }
-    .item-price { color: var(--muted); font-size: .92rem; }
-    .item.addon .item-name { font-style: italic; color: var(--muted); }
-    .item .na { font-size: .82rem; color: var(--muted); text-align: right; max-width: 120px; }
-    .empty-search { padding: 40px 0; text-align: center; color: var(--muted); }
-
-    /* bottom cart bar */
-    .cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--cream) 30%); }
-    .cartbar .btn { width: 100%; max-width: 608px; margin: 0 auto; display: flex; justify-content: space-between; min-height: 56px; border-radius: 14px; font-size: 1rem; box-shadow: 0 10px 24px rgba(0,0,0,.2); }
-    .cartbar .count { font-weight: 500; opacity: .9; }
-
-    /* cart + confirmation views */
-    .view-head { display: flex; align-items: center; gap: 10px; padding: 18px 0 8px; }
-    .back { width: 40px; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; display: grid; place-items: center; cursor: pointer; }
-    .view-head h1 { font-size: 1.7rem; }
-    .lines { margin-top: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; }
-    .line { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px dashed var(--line); }
-    .line:last-child { border-bottom: 0; }
-    .line-main { flex: 1; min-width: 0; }
-    .line-sub { color: var(--muted); font-size: .88rem; }
-    .totals { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 4px 4px; font-size: 1.15rem; font-weight: 600; }
-    .field { display: grid; gap: 6px; margin-top: 18px; }
-    .field label { font-weight: 600; font-size: .92rem; }
-    .field small { color: var(--muted); font-weight: 400; }
-    .field textarea, .field input, .field select { width: 100%; padding: 12px; background: #fff; border: 1.5px solid var(--line); border-radius: 10px; }
-    .field textarea { min-height: 84px; resize: vertical; }
-    .field textarea:focus, .field input:focus, .field select:focus { outline: none; border-color: var(--ink); }
-    .pay-note { margin-top: 18px; }
-    .place { width: 100%; min-height: 56px; margin-top: 18px; border-radius: 14px; font-size: 1.05rem; }
-
-    .confirm { padding-top: 24px; }
-    .ticket { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 22px 18px; text-align: center; }
-    .ticket .num { font-size: 3rem; color: var(--red); }
-    .ticket p { color: var(--muted); }
-    .steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 22px 0 6px; counter-reset: s; }
-    .steps li { position: relative; padding-top: 30px; font-size: .78rem; font-weight: 500; color: var(--muted); text-align: center; }
-    .steps li::before { content: ""; position: absolute; top: 4px; left: 50%; translate: -50% 0; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); background: #fff; }
-    .steps li::after { content: ""; position: absolute; top: 12px; left: calc(50% + 12px); right: calc(-50% + 12px); height: 2px; background: var(--line); }
-    .steps li:last-child::after { display: none; }
-    .steps li.done { color: var(--ink); }
-    .steps li.done::before { background: var(--ok); border-color: var(--ok); }
-    .steps li.done::after { background: var(--ok); }
-    .steps li.now { color: var(--ink); font-weight: 600; }
-    .steps li.now::before { border-color: var(--ok); box-shadow: 0 0 0 4px rgba(29,138,58,.18); }
-    .status-line { margin-top: 10px; font-weight: 600; }
-    .confirm .actions { display: grid; gap: 10px; margin-top: 18px; }
-    .past { margin-top: 26px; }
-    .past h2 { font-size: 1.2rem; margin-bottom: 8px; }
-    .past button { display: flex; width: 100%; justify-content: space-between; padding: 12px 14px; margin-bottom: 8px; background: #fff; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; text-align: left; }
-
-    /* table picker */
-    .picker { padding-top: 40px; text-align: center; }
-    .picker h1 { font-size: 2rem; margin-bottom: 8px; }
-    .picker p { color: var(--muted); }
-    .picker .field { text-align: left; max-width: 320px; margin: 22px auto 0; }
-    .picker .btn { margin-top: 14px; width: 100%; max-width: 320px; }
-  </style>
+  <link rel="stylesheet" href="order.css?v=1">
 </head>
 <body>
 
@@ -189,6 +101,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=5"></script>
+<script src="order.js?v=6"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 # Good Luck Cafe: website and table ordering
 
 - `index.html`, `style.css`, `images/`: the public website (hosted on GitHub Pages).
-- `server.js`, `order.*`, `kitchen.*`, `tables.*`, `app.css`, `menu.json`: table ordering, which runs **on the cafe's own computer**.
+- `server.js`, `order.*`, `online.html`, `kitchen.*`, `tables.*`, `app.css`, `menu.json`: table ordering and online ordering (delivery / pickup), which run **on the cafe's own computer**.
 
 ## How the ordering system is laid out
 
@@ -9,7 +9,7 @@ One program runs on the cafe computer. It has one database and two doors:
 
 | Door | Address | Who uses it | Reachable from |
 |---|---|---|---|
-| Customer door | `http://localhost:8080` → published as `https://order.goodluckcafe.in` | Customers' phones (QR on the table) | The internet, **only through the tunnel** |
+| Customer door | `http://localhost:8080` → published as `https://order.goodluckcafe.in` | Customers' phones: QR on the table (`/order.html`) and online orders from the website (`/online.html`) | The internet, **only through the tunnel** |
 | Staff door | `http://localhost:8081` | Receptionist + kitchen screen, printing QR cards | **This computer only** |
 
 Both doors share the same database, so when the receptionist taps *Approve* or *Mark ready*, the customer's phone updates within a few seconds.
@@ -75,6 +75,18 @@ On the cafe computer, open `http://localhost:8081/tables.html`. The address on t
 4. **First order from a phone:** it shows under **Approve new phones**. Check someone is sitting at that table, then tap **Approve**.
 5. **Late friend:** if they arrive after 10 minutes, tap **Let more phones join** on that table.
 6. **Guests leave:** tap **Turn off**. It shows the bill, and their phones can no longer order.
+
+## Online orders (delivery and pickup)
+
+- **Where:** the website's **Order online** buttons open `online.html`.
+- **Delivery area:** delivery is only for customers within **10 km** of the cafe. The customer taps "Use my location", and the server measures the distance itself.
+- **Delivery charge:** free up to 3 km, ₹20 up to 6 km, ₹40 up to 10 km. Pickup is free and needs no location.
+- **Payment:** cash or UPI on delivery, or at pickup.
+- **Confirming:** every online order shows under **Needs your OK** with the customer's number, address and a map link. Call them to confirm, then tap **Confirmed on call** to send it to the kitchen, or **Reject** if it's fake.
+- **Limits:** 3 orders per mobile number per hour, at most 2 waiting to be confirmed per number.
+- **To change the 10 km area or the charges:** edit `DELIVERY` near the top of `server.js`. The cafe's map position is stored there too.
+
+**Going live:** the website is hosted separately on GitHub Pages, so change its two **Order online** links in `index.html` (they have `data-order-link`) from `online.html` to the full address, for example `https://order.goodluckcafe.in/online.html`.
 
 ## Settings (optional)
 

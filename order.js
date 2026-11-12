@@ -1,4 +1,5 @@
-// Customer ordering page. Talks to server.js; the server re-prices every order.
+// Customer ordering: table orders (order.html) and online delivery / pickup (online.html, body data-mode="online").
+// Talks to server.js; the server re-prices every order and makes every decision. This page only helps.
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
@@ -27,7 +28,9 @@
   var PLUS = '<path d="M12 5v14M5 12h14"/>', MINUS = '<path d="M5 12h14"/>';
 
   var menu = null, items = {}, table = null, cart = {}, poll = null;
-  var views = ['Picker', 'Menu', 'Cart', 'Done'];
+  var ONLINE = document.body.dataset.mode === 'online';
+  var views = ONLINE ? ['Menu', 'Cart', 'Done'] : ['Picker', 'Menu', 'Cart', 'Done'];
+  var loc = null; // online delivery: { lat, lng, accuracy, km, fee } once the phone shares its location
   var seat = { open: false, joined: false, joinOpen: false, approved: false };
 
   function show(name) {
@@ -136,9 +139,11 @@
     });
     if (!count()) lines.append(el('p', { class: 'line', text: 'Your order is empty.' }));
     $('cartTotal').textContent = rupees(total());
+    if (ONLINE) updateSummary();
     placeLabel();
   }
   function placeLabel() {
+    if (ONLINE) return onlineLabel();
     var btn = $('placeBtn'), ok = seat.open && seat.joined;
     btn.disabled = !count() || !ok;
     btn.textContent = ok ? 'Place order' : !seat.open ? 'Ordering is off for this table' : 'This table is in use';
@@ -161,6 +166,7 @@
     }).then(function () { banner(seat.open && seat.joined ? '' : 'warn', tableMessage()); return seat; });
   }
   function place() {
+    if (ONLINE) return placeOnline();
     var btn = $('placeBtn');
     btn.disabled = true; btn.textContent = 'Placing order…';
     $('cartError').replaceChildren();
@@ -184,6 +190,85 @@
     }).then(function () { if (!$('viewCart').hidden) placeLabel(); });
   }
 
+  // ---------- online: delivery or pickup ----------
+  function kind() { var r = document.querySelector('input[name="kind"]:checked'); return r ? r.value : 'delivery'; }
+  function distanceKm(a, b) {
+    var R = 6371, rad = Math.PI / 180, dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+    var h = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.pow(Math.sin(dLng / 2), 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function feeFor(km) { var f = menu.delivery.fees; for (var i = 0; i < f.length; i++) if (km <= f[i][0]) return f[i][1]; return null; }
+  function locStatus(kindOf, text) { $('locStatus').replaceChildren(text ? el('p', { class: 'notice ' + kindOf, text: text }) : ''); }
+  function locate() {
+    var btn = $('locBtn');
+    if (!window.isSecureContext || !navigator.geolocation) {
+      return locStatus('error', 'This browser can\'t share your location. Try Chrome or Safari on your phone, or choose pickup.');
+    }
+    btn.disabled = true; btn.lastChild.textContent = 'Finding you…';
+    navigator.geolocation.getCurrentPosition(function (p) {
+      btn.disabled = false; btn.lastChild.textContent = 'Update my location';
+      var c = p.coords, km = distanceKm(menu.delivery.cafe, { lat: c.latitude, lng: c.longitude });
+      if (c.accuracy > menu.delivery.maxAccuracyM) {
+        loc = null;
+        locStatus('warn', 'Your location isn\'t precise enough (about ' + Math.round(c.accuracy / 100) / 10 + ' km). Turn on GPS / precise location and try again, or choose pickup.');
+      } else if (feeFor(km) == null) {
+        loc = null;
+        locStatus('error', 'Sorry, you\'re ' + km.toFixed(1) + ' km away. We deliver within ' + menu.delivery.maxKm + ' km. You can choose pickup instead.');
+      } else {
+        loc = { lat: c.latitude, lng: c.longitude, accuracy: c.accuracy, km: km, fee: feeFor(km) };
+        locStatus('info', 'You\'re ' + km.toFixed(1) + ' km from the cafe. Delivery: ' + (loc.fee ? rupees(loc.fee) : 'free') + '.');
+      }
+      updateSummary(); placeLabel();
+    }, function (err) {
+      btn.disabled = false; btn.lastChild.textContent = 'Use my location';
+      loc = null;
+      locStatus('error', err.code === 1
+        ? 'Location is blocked for this site. Allow location in your browser settings to get delivery, or choose pickup.'
+        : 'Couldn\'t find your location. Turn on location / GPS and try again, or choose pickup.');
+      updateSummary(); placeLabel();
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  }
+  function updateSummary() {
+    var delivery = kind() === 'delivery', fee = delivery && loc ? loc.fee : 0;
+    $('deliveryBox').hidden = !delivery;
+    $('sumFeeRow').hidden = !delivery;
+    $('sumItems').textContent = rupees(total());
+    $('sumFee').textContent = !loc ? 'Share location to see' : fee ? rupees(fee) : 'Free';
+    $('cartTotal').textContent = rupees(total() + fee);
+    $('payNote').textContent = delivery
+      ? 'Pay by cash or UPI when your food arrives. We\'ll call you to confirm the order before we start cooking.'
+      : 'Pay by cash or UPI when you collect it at the counter. We\'ll call you to confirm the order before we start cooking.';
+  }
+  function onlineLabel() {
+    var btn = $('placeBtn'), needLoc = kind() === 'delivery' && !loc;
+    btn.disabled = !count() || needLoc || (menu && !menu.open);
+    btn.textContent = needLoc ? 'Share your location to order delivery' : 'Place order · ' + rupees(total() + (kind() === 'delivery' && loc ? loc.fee : 0));
+  }
+  function placeOnline() {
+    var btn = $('placeBtn'), err = $('cartError');
+    err.replaceChildren();
+    var problem = $('name').value.trim().length < 2 ? 'Please enter your name.'
+      : !/^(\+?91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}$/.test($('phone').value.trim()) ? 'Please enter a valid 10-digit mobile number.'
+      : kind() === 'delivery' && $('address').value.trim().length < 10 ? 'Please enter your full delivery address.' : '';
+    if (problem) return err.replaceChildren(el('p', { class: 'notice error', style: 'margin-top:14px', role: 'alert', text: problem }));
+    btn.disabled = true; btn.textContent = 'Placing order…';
+    var body = { kind: kind(), name: $('name').value, phone: $('phone').value, note: $('note').value,
+      items: Object.keys(cart).map(function (id) { return { id: id, qty: cart[id] }; }) };
+    if (body.kind === 'delivery') { body.address = $('address').value; body.lat = loc.lat; body.lng = loc.lng; body.accuracy = loc.accuracy; }
+    api('/api/online-orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (order) {
+        var mine = recentOrders();
+        mine.unshift({ id: order.id, t: order.token, at: order.createdAt });
+        store.set('glc-orders-' + table, mine.slice(0, 10));
+        store.set('glc-contact', { name: $('name').value, phone: $('phone').value, address: $('address').value });
+        cart = {}; store.set(cartKey(), cart); $('note').value = '';
+        document.querySelectorAll('[data-qty]').forEach(function (slot) { slot.replaceChildren(control(slot.dataset.qty)); });
+        showOrder(order.id, order.token, order);
+      })
+      .catch(function (e) { err.replaceChildren(el('p', { class: 'notice error', style: 'margin-top:14px', role: 'alert', text: e.message })); })
+      .then(function () { if (!$('viewCart').hidden) onlineLabel(); });
+  }
+
   // ---------- after ordering ----------
   var STATUS_TEXT = {
     pending: 'Waiting for the counter to confirm your first order. This only happens once per phone.',
@@ -193,19 +278,39 @@
     served: 'Served. Enjoy your meal, and pay at the counter when you\'re done.',
     cancelled: 'This order was cancelled. Please ask at the counter.',
   };
+  var ONLINE_TEXT = {
+    pending: 'Order received. We\'ll call you shortly to confirm it.',
+    new: 'Confirmed! The kitchen will start on it shortly.',
+    preparing: 'The kitchen is preparing your order.',
+    readydelivery: 'Ready, and on its way to you.',
+    readypickup: 'Ready! Collect it from the counter.',
+    serveddelivery: 'Delivered. Enjoy your meal!',
+    servedpickup: 'Collected. Enjoy your meal!',
+    cancelled: 'This order was cancelled. If that\'s a mistake, please call the cafe.',
+  };
   var ORDER = ['new', 'preparing', 'ready', 'served'];
   function renderOrder(o) {
     $('doneNum').textContent = '#' + o.id;
-    $('doneTable').textContent = 'Table ' + o.table + (o.name ? ' · ' + o.name : '');
+    if (o.kind && o.kind !== 'table') {
+      var d = o.kind === 'delivery';
+      $('doneTable').textContent = (d ? 'Delivery' + (o.distanceKm != null ? ' · ' + o.distanceKm + ' km' : '') : 'Pickup') + ' · ' + o.name;
+      $('stepReady').textContent = d ? 'On the way' : 'Ready';
+      $('stepDone').textContent = d ? 'Delivered' : 'Collected';
+      $('doneTotalLabel').textContent = d ? 'To pay on delivery' : 'To pay at pickup';
+    } else {
+      $('doneTable').textContent = 'Table ' + o.table + (o.name ? ' · ' + o.name : '');
+    }
     var at = ORDER.indexOf(o.status);
     document.querySelectorAll('#steps li').forEach(function (li, idx) {
       li.className = o.status === 'cancelled' ? '' : idx < at || o.status === 'served' ? 'done' : idx === at ? 'now' : '';
     });
-    $('statusLine').textContent = STATUS_TEXT[o.status] || '';
+    $('statusLine').textContent = (o.kind && o.kind !== 'table'
+      ? ONLINE_TEXT[o.status + (o.status === 'ready' || o.status === 'served' ? o.kind : '')] : STATUS_TEXT[o.status]) || '';
     $('doneLines').replaceChildren.apply($('doneLines'), o.items.map(function (l) {
       return el('div', { class: 'line' }, el('span', { class: 'mark ' + (l.veg ? 'veg' : 'nonveg'), role: 'img', 'aria-label': l.veg ? 'Veg' : 'Egg or non-veg' }),
         el('div', { class: 'line-main', text: l.qty + ' × ' + l.name }), el('span', { class: 'money', text: rupees(l.price * l.qty) }));
-    }).concat(o.note ? [el('p', { class: 'line line-sub', text: 'Note: ' + o.note })] : []));
+    }).concat(o.fee ? [el('div', { class: 'line' }, el('div', { class: 'line-main', text: 'Delivery' }), el('span', { class: 'money', text: rupees(o.fee) }))] : [])
+      .concat(o.note ? [el('p', { class: 'line line-sub', text: 'Note: ' + o.note })] : []));
     $('doneTotal').textContent = rupees(o.total);
     return o.status === 'served' || o.status === 'cancelled';
   }
@@ -256,14 +361,28 @@
   document.addEventListener('click', function (e) {
     var go = e.target.closest('[data-go]');
     if (!go) return;
-    if (go.dataset.go === 'cart') { renderCart(); show('Cart'); checkTable().then(placeLabel).catch(function () {}); }
+    if (go.dataset.go === 'cart') { renderCart(); show('Cart'); if (!ONLINE) checkTable().then(placeLabel).catch(function () {}); }
     if (go.dataset.go === 'menu') { updateOrdersLink(); show('Menu'); refreshBar(); }
   });
   $('search').addEventListener('input', filter);
   $('vegOnly').addEventListener('change', filter);
   $('placeBtn').addEventListener('click', place);
   $('myOrdersLink').addEventListener('click', function () { var m = recentOrders()[0]; if (m) showOrder(m.id, m.t); });
-  $('tableGo').addEventListener('click', function () {
+  if (ONLINE) {
+    $('locBtn').addEventListener('click', locate);
+    document.querySelectorAll('input[name="kind"]').forEach(function (r) { r.addEventListener('change', function () { updateSummary(); placeLabel(); }); });
+  }
+  function startOnline() {
+    table = 'online'; // storage keys: glc-cart-online, glc-orders-online
+    cart = store.get(cartKey(), {});
+    for (var id in cart) if (!items[id] || items[id].price == null) delete cart[id];
+    var c = store.get('glc-contact', {});
+    $('name').value = c.name || ''; $('phone').value = c.phone || ''; $('address').value = c.address || '';
+    renderMenu(); watchSections(); updateOrdersLink();
+    show('Menu');
+    refreshBar();
+  }
+  if (!ONLINE) $('tableGo').addEventListener('click', function () {
     var n = Number($('tableSelect').value);
     history.replaceState(null, '', '?table=' + n);
     startTable(n);
@@ -273,6 +392,7 @@
     menu = m;
     m.categories.forEach(function (c) { c.items.forEach(function (i) { items[i.id] = i; }); });
     if (!m.open) banner('warn', 'The kitchen is closed right now. You can look at the menu; ordering opens at 6:00 am.');
+    if (ONLINE) return startOnline();
     var n = Number(new URLSearchParams(location.search).get('table'));
     if (Number.isInteger(n) && n >= 1 && n <= m.tables) return startTable(n);
     var sel = $('tableSelect');

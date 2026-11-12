@@ -38,6 +38,24 @@
         ],
         "createdAt": "2026-11-12T12:45:11.494Z",
         "reason": "Claude: flagged element is the back button sitting beside the 'Your order' heading in a flex row, not an icon tile above it"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "online.html"
+        ],
+        "createdAt": "2026-11-12T14:57:33.330Z",
+        "reason": "Claude: cafe's established site-wide palette, same as order.html"
+      },
+      {
+        "rule": "icon-tile-stack",
+        "value": "*",
+        "files": [
+          "online.html"
+        ],
+        "createdAt": "2026-11-12T14:57:33.343Z",
+        "reason": "Claude: back button beside the 'Your order' heading in a flex row, same as order.html"
       }
     ]
   }
