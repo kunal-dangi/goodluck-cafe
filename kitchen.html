@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kitchen · Good Luck Cafe</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="images/logo.jpg" type="image/jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <style>
+    body { background: #ece3d3; min-height: 100vh; }
+    .top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 12px 20px; background: var(--ink); color: #f3ead9; }
+    .top .brand span { color: #ff8a6e; }
+    .top .brand span b { color: #f3ead9; }
+    .top h1 { font-size: 1.3rem; color: #f3ead9; margin-right: auto; }
+    .live { display: inline-flex; align-items: center; gap: 8px; font-size: .88rem; }
+    .live::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
+    .live.on::before { background: #4cc26b; }
+    .today { font-size: .88rem; color: #d4c8b5; }
+    .today b { color: #fff; font-weight: 600; }
+    .sound { min-height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(243,234,217,.5); background: transparent; color: #f3ead9; font-weight: 500; cursor: pointer; }
+    .sound[aria-pressed="true"] { background: #f3ead9; color: var(--ink); }
+
+    .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 18px 20px 40px; align-items: start; }
+    .col h2 { display: flex; align-items: baseline; gap: 10px; font-size: 1.4rem; margin: 4px 2px 12px; }
+    .col h2 .n { font-family: "Work Sans", sans-serif; font-size: .95rem; font-weight: 600; color: var(--muted); }
+    .col[data-col="new"] h2 { color: var(--red); }
+    .col[data-col="ready"] h2 { color: #126128; }
+    .stack { display: grid; gap: 14px; }
+    .empty { padding: 26px 12px; border: 2px dashed #d4c5ab; border-radius: 14px; text-align: center; color: var(--muted); font-size: .92rem; }
+
+    .ticket { background: var(--paper); border-radius: 14px; padding: 16px; box-shadow: 0 6px 16px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06); }
+    .ticket.fresh { animation: arrive 1.6s cubic-bezier(.16,1,.3,1); }
+    @keyframes arrive { from { box-shadow: 0 0 0 4px var(--red), 0 6px 16px rgba(0,0,0,.08); translate: 0 -10px; } }
+    .t-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+    .t-table { font-family: "Rozha One", Georgia, serif; font-size: 1.9rem; line-height: 1; }
+    .t-meta { text-align: right; font-size: .85rem; color: var(--muted); }
+    .t-meta b { display: block; color: var(--ink); font-size: .95rem; }
+    .t-meta .late { color: var(--red); font-weight: 600; }
+    .t-items { list-style: none; padding: 10px 0; display: grid; gap: 6px; }
+    .t-items li { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; }
+    .t-items .q { min-width: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .t-note { margin: 2px 0 10px; padding: 10px 12px; border-radius: 10px; background: #fff1d6; color: #5a3a00; font-weight: 500; }
+    .t-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+    .t-foot .who { font-size: .9rem; color: var(--muted); }
+    .t-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .t-actions .btn { flex: 1; min-height: 50px; font-size: 1rem; }
+    .t-actions .cancel { flex: none; background: transparent; border-color: var(--line); color: var(--muted); }
+    .t-actions .cancel:hover { border-color: var(--red); color: var(--red); background: transparent; }
+    .ticket[data-status="ready"] .go { background: var(--ok); border-color: var(--ok); }
+
+    .err { margin: 18px 20px 0; }
+    @media (max-width: 900px) { .board { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="top">
+  <span class="brand"><img src="images/logo.jpg" width="150" height="150" alt=""><span>Good Luck <b>Cafe</b></span></span>
+  <h1>Kitchen</h1>
+  <span class="today" id="today"></span>
+  <span class="live" id="live">Connecting…</span>
+  <button class="sound" id="sound" type="button" aria-pressed="false">Turn sound on</button>
+</header>
+
+<div id="err"></div>
+
+<main class="board">
+  <section class="col" data-col="new"><h2>New <span class="n" id="n-new"></span></h2><div class="stack" id="c-new"></div></section>
+  <section class="col" data-col="preparing"><h2>Preparing <span class="n" id="n-preparing"></span></h2><div class="stack" id="c-preparing"></div></section>
+  <section class="col" data-col="ready"><h2>Ready to serve <span class="n" id="n-ready"></span></h2><div class="stack" id="c-ready"></div></section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var rupees = function (n) { return '₹' + Number(n).toLocaleString('en-IN'); };
+  function el(tag, attrs) {
+    var n = document.createElement(tag);
+    for (var k in attrs || {}) {
+      if (k === 'text') n.textContent = attrs[k];
+      else if (k === 'class') n.className = attrs[k];
+      else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), attrs[k]);
+      else n.setAttribute(k, attrs[k]);
+    }
+    for (var i = 2; i < arguments.length; i++) if (arguments[i] != null) n.append(arguments[i]);
+    return n;
+  }
+
+  var orders = new Map(), servedToday = 0, takings = 0, soundOn = false, audio = null, firstLoad = true;
+  var ACTIONS = {
+    new: [['preparing', 'Start preparing']],
+    preparing: [['ready', 'Mark ready']],
+    ready: [['served', 'Served']],
+  };
+  var EMPTY = { new: 'No new orders. New ones appear here with a sound.', preparing: 'Nothing on the stove.', ready: 'Nothing waiting to be served.' };
+
+  function minutesAgo(iso) { return Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); }
+  function ago(iso) { var m = minutesAgo(iso); return m < 1 ? 'just now' : m === 1 ? '1 min ago' : m + ' min ago'; }
+
+  function ticket(o, fresh) {
+    var acts = (ACTIONS[o.status] || []).map(function (a) {
+      return el('button', { class: 'btn go', type: 'button', onclick: function () { move(o, a[0]); } }, a[1]);
+    });
+    if (o.status === 'new' || o.status === 'preparing') {
+      acts.push(el('button', { class: 'btn cancel', type: 'button', onclick: function () {
+        if (confirm('Cancel order #' + o.id + ' for table ' + o.table + '? The customer will see it was cancelled.')) move(o, 'cancelled');
+      } }, 'Cancel'));
+    }
+    var mins = minutesAgo(o.createdAt);
+    return el('article', { class: 'ticket' + (fresh ? ' fresh' : ''), 'data-status': o.status, 'data-id': o.id },
+      el('div', { class: 't-head' },
+        el('span', { class: 't-table', text: 'Table ' + o.table }),
+        el('span', { class: 't-meta' }, el('b', { text: '#' + o.id }), el('span', { class: mins >= 15 && o.status !== 'ready' ? 'late' : '', 'data-ago': o.createdAt, text: ago(o.createdAt) }))),
+      el('ul', { class: 't-items' }, ...o.items.map(function (l) {
+        return el('li', {}, el('span', { class: 'q', text: l.qty + '×' }),
+          el('span', { class: 'mark ' + (l.veg ? 'veg' : 'nonveg'), role: 'img', 'aria-label': l.veg ? 'Veg' : 'Egg or non-veg' }),
+          el('span', { text: l.name }));
+      })),
+      o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
+      el('div', { class: 't-foot' }, el('span', { class: 'who', text: o.name ? 'For ' + o.name : '' }), el('b', { class: 'money', text: rupees(o.total) })),
+      el('div', { class: 't-actions' }, ...acts));
+  }
+
+  function render(freshId) {
+    ['new', 'preparing', 'ready'].forEach(function (s) {
+      var list = [...orders.values()].filter(function (o) { return o.status === s; }).sort(function (a, b) { return a.id - b.id; });
+      $('n-' + s).textContent = list.length || '';
+      $('c-' + s).replaceChildren(...(list.length ? list.map(function (o) { return ticket(o, o.id === freshId); }) : [el('p', { class: 'empty', text: EMPTY[s] })]));
+    });
+    var waiting = [...orders.values()].filter(function (o) { return o.status === 'new'; }).length;
+    document.title = (waiting ? '(' + waiting + ') ' : '') + 'Kitchen · Good Luck Cafe';
+    $('today').replaceChildren('Today: ', el('b', { text: servedToday + ' served' }), ' · ', el('b', { class: 'money', text: rupees(takings) }));
+  }
+
+  function upsert(o) {
+    var isNew = !orders.has(o.id) && o.status === 'new';
+    if (o.status === 'served') { if (orders.has(o.id)) { servedToday++; takings += o.total; } orders.delete(o.id); }
+    else if (o.status === 'cancelled') orders.delete(o.id);
+    else orders.set(o.id, o);
+    render(isNew ? o.id : null);
+    if (isNew && !firstLoad) ding();
+  }
+
+  function move(o, status) {
+    error('');
+    fetch('/api/kitchen/orders/' + o.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: status }) })
+      .then(function (r) { return r.json().then(function (b) { if (!r.ok) throw new Error(b.message); return b; }); })
+      .then(upsert)
+      .catch(function (e) { error(e.message || 'Could not update the order. Check the connection.'); load(); });
+  }
+  function error(msg) { $('err').replaceChildren(msg ? el('p', { class: 'notice error err', role: 'alert', text: msg }) : ''); }
+
+  function load() {
+    return fetch('/api/kitchen/orders').then(function (r) { return r.json(); }).then(function (d) {
+      orders = new Map(d.orders.map(function (o) { return [o.id, o]; }));
+      servedToday = d.servedToday; takings = d.takingsToday;
+      render(null);
+    }).catch(function () { error('Can\'t reach the order server. Is it running?'); });
+  }
+
+  // two-note chime; browsers only allow sound after a tap, hence the button
+  function ding() {
+    if (!soundOn || !audio) return;
+    [880, 1320].forEach(function (f, i) {
+      var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.18;
+      o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.55);
+    });
+  }
+  $('sound').addEventListener('click', function () {
+    soundOn = !soundOn;
+    if (soundOn && !audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    this.setAttribute('aria-pressed', soundOn);
+    this.textContent = soundOn ? 'Sound on' : 'Turn sound on';
+    if (soundOn) ding();
+  });
+
+  function connect() {
+    var es = new EventSource('/api/kitchen/stream');
+    es.addEventListener('open', function () { $('live').textContent = 'Live'; $('live').classList.add('on'); load().then(function () { firstLoad = false; }); error(''); });
+    es.addEventListener('order', function (e) { upsert(JSON.parse(e.data)); });
+    es.addEventListener('error', function () { $('live').textContent = 'Reconnecting…'; $('live').classList.remove('on'); });
+  }
+  setInterval(function () { document.querySelectorAll('[data-ago]').forEach(function (s) { s.textContent = ago(s.dataset.ago); }); }, 30000);
+  connect();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Order · Good Luck Cafe</title>
+  <meta name="theme-color" content="#f7f0e3">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="images/logo.jpg" type="image/jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <style>
+    body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+
+    /* header */
+    .bar { position: sticky; top: 0; z-index: 20; background: var(--cream); border-bottom: 1px solid var(--line); }
+    .bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 60px; }
+    .table-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--ink); color: #fff; font-size: .85rem; font-weight: 600; white-space: nowrap; }
+    .orders-link { border: 0; background: none; color: var(--red); font-weight: 600; font-size: .9rem; cursor: pointer; text-decoration: underline; text-underline-offset: .2em; }
+
+    /* menu view */
+    .intro { padding: 20px 0 6px; }
+    .intro h1 { font-size: 1.9rem; margin-bottom: 4px; }
+    .intro p { color: var(--muted); font-size: .95rem; }
+    .tools { display: flex; gap: 10px; align-items: center; padding: 14px 0 4px; }
+    .search { flex: 1; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; background: #fff; border: 1.5px solid var(--line); border-radius: 10px; }
+    .search:focus-within { border-color: var(--ink); }
+    .search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; }
+    .search .icon { color: var(--muted); }
+    .veg-toggle { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; font-size: .9rem; font-weight: 500; white-space: nowrap; cursor: pointer; }
+    .veg-toggle input { width: 18px; height: 18px; accent-color: var(--veg); }
+
+    .chips { position: sticky; top: 60px; z-index: 15; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 16px; margin: 6px -16px 0; background: var(--cream); border-bottom: 1px solid var(--line); }
+    .chips::-webkit-scrollbar { display: none; }
+    .chips a { flex: none; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: .84rem; font-weight: 500; color: var(--ink); text-decoration: none; }
+    .chips a.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+    .section { padding-top: 22px; scroll-margin-top: 120px; }
+    .section h2 { font-size: 1.35rem; color: var(--red); padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
+    .item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .item .mark { align-self: flex-start; margin-top: 4px; }
+    .item-main { flex: 1; min-width: 0; }
+    .item-name { font-weight: 500; }
+    .item-price { color: var(--muted); font-size: .92rem; }
+    .item.addon .item-name { font-style: italic; color: var(--muted); }
+    .item .na { font-size: .82rem; color: var(--muted); text-align: right; max-width: 120px; }
+    .empty-search { padding: 40px 0; text-align: center; color: var(--muted); }
+
+    /* bottom cart bar */
+    .cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--cream) 30%); }
+    .cartbar .btn { width: 100%; max-width: 608px; margin: 0 auto; display: flex; justify-content: space-between; min-height: 56px; border-radius: 14px; font-size: 1rem; box-shadow: 0 10px 24px rgba(0,0,0,.2); }
+    .cartbar .count { font-weight: 500; opacity: .9; }
+
+    /* cart + confirmation views */
+    .view-head { display: flex; align-items: center; gap: 10px; padding: 18px 0 8px; }
+    .back { width: 40px; height: 40px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; display: grid; place-items: center; cursor: pointer; }
+    .view-head h1 { font-size: 1.7rem; }
+    .lines { margin-top: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px; }
+    .line { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px dashed var(--line); }
+    .line:last-child { border-bottom: 0; }
+    .line-main { flex: 1; min-width: 0; }
+    .line-sub { color: var(--muted); font-size: .88rem; }
+    .totals { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 4px 4px; font-size: 1.15rem; font-weight: 600; }
+    .field { display: grid; gap: 6px; margin-top: 18px; }
+    .field label { font-weight: 600; font-size: .92rem; }
+    .field small { color: var(--muted); font-weight: 400; }
+    .field textarea, .field input, .field select { width: 100%; padding: 12px; background: #fff; border: 1.5px solid var(--line); border-radius: 10px; }
+    .field textarea { min-height: 84px; resize: vertical; }
+    .field textarea:focus, .field input:focus, .field select:focus { outline: none; border-color: var(--ink); }
+    .pay-note { margin-top: 18px; }
+    .place { width: 100%; min-height: 56px; margin-top: 18px; border-radius: 14px; font-size: 1.05rem; }
+
+    .confirm { padding-top: 24px; }
+    .ticket { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 22px 18px; text-align: center; }
+    .ticket .num { font-size: 3rem; color: var(--red); }
+    .ticket p { color: var(--muted); }
+    .steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 22px 0 6px; counter-reset: s; }
+    .steps li { position: relative; padding-top: 30px; font-size: .78rem; font-weight: 500; color: var(--muted); text-align: center; }
+    .steps li::before { content: ""; position: absolute; top: 4px; left: 50%; translate: -50% 0; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); background: #fff; }
+    .steps li::after { content: ""; position: absolute; top: 12px; left: calc(50% + 12px); right: calc(-50% + 12px); height: 2px; background: var(--line); }
+    .steps li:last-child::after { display: none; }
+    .steps li.done { color: var(--ink); }
+    .steps li.done::before { background: var(--ok); border-color: var(--ok); }
+    .steps li.done::after { background: var(--ok); }
+    .steps li.now { color: var(--ink); font-weight: 600; }
+    .steps li.now::before { border-color: var(--ok); box-shadow: 0 0 0 4px rgba(29,138,58,.18); }
+    .status-line { margin-top: 10px; font-weight: 600; }
+    .confirm .actions { display: grid; gap: 10px; margin-top: 18px; }
+    .past { margin-top: 26px; }
+    .past h2 { font-size: 1.2rem; margin-bottom: 8px; }
+    .past button { display: flex; width: 100%; justify-content: space-between; padding: 12px 14px; margin-bottom: 8px; background: #fff; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; text-align: left; }
+
+    /* table picker */
+    .picker { padding-top: 40px; text-align: center; }
+    .picker h1 { font-size: 2rem; margin-bottom: 8px; }
+    .picker p { color: var(--muted); }
+    .picker .field { text-align: left; max-width: 320px; margin: 22px auto 0; }
+    .picker .btn { margin-top: 14px; width: 100%; max-width: 320px; }
+  </style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="images/logo.jpg" width="150" height="150" alt=""><span>Good Luck <b>Cafe</b></span></a>
+    <span class="table-pill" id="tablePill" hidden></span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner"></div>
+
+  <!-- 1. pick a table (only when the QR code didn't include one) -->
+  <section id="viewPicker" class="picker" hidden>
+    <h1>Which table are you at?</h1>
+    <p>The table number is printed on the card on your table.</p>
+    <div class="field">
+      <label for="tableSelect">Table number</label>
+      <select id="tableSelect"></select>
+    </div>
+    <button class="btn" id="tableGo" type="button">Show the menu</button>
+  </section>
+
+  <!-- 2. menu -->
+  <section id="viewMenu" hidden>
+    <div class="intro">
+      <h1>What would you like?</h1>
+      <p>Add items, then place your order. Pay at the counter when you're done.</p>
+    </div>
+    <div class="tools">
+      <label class="search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="search" type="search" placeholder="Search: chai, maggi, roll…" autocomplete="off" aria-label="Search the menu"></label>
+      <label class="veg-toggle"><input type="checkbox" id="vegOnly"> Veg only</label>
+    </div>
+    <nav class="chips" id="chips" aria-label="Menu sections"></nav>
+    <div id="menuList"></div>
+    <p class="empty-search" id="noResults" hidden>Nothing matches that. Try another word.</p>
+    <p class="notice info" style="margin-top:24px">Cold drinks and water bottles are sold at MRP. Ask at the counter.</p>
+    <p style="margin-top:16px"><button class="orders-link" id="myOrdersLink" type="button" hidden></button></p>
+  </section>
+
+  <!-- 3. review order -->
+  <section id="viewCart" hidden>
+    <div class="view-head">
+      <button class="back" type="button" data-go="menu" aria-label="Back to menu"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h1>Your order</h1>
+    </div>
+    <div class="lines" id="cartLines"></div>
+    <div class="totals"><span>Total</span><span class="money" id="cartTotal"></span></div>
+    <div class="field">
+      <label for="note">Note for the kitchen <small>(optional)</small></label>
+      <textarea id="note" maxlength="200" placeholder="Less spicy, no onion, extra hot…"></textarea>
+    </div>
+    <div class="field">
+      <label for="name">Your name <small>(optional, so staff can call you)</small></label>
+      <input id="name" maxlength="40" autocomplete="given-name">
+    </div>
+    <p class="notice info pay-note">You pay at the counter after your meal. Cash and UPI accepted.</p>
+    <div id="cartError"></div>
+    <button class="btn place" id="placeBtn" type="button">Place order</button>
+  </section>
+
+  <!-- 4. order placed / tracking -->
+  <section id="viewDone" class="confirm" hidden>
+    <div class="ticket">
+      <p>Order</p>
+      <div class="num serif" id="doneNum"></div>
+      <p id="doneTable"></p>
+      <ol class="steps" id="steps">
+        <li data-s="new">Received</li><li data-s="preparing">Preparing</li><li data-s="ready">Ready</li><li data-s="served">Served</li>
+      </ol>
+      <p class="status-line" id="statusLine" aria-live="polite"></p>
+    </div>
+    <div class="lines" id="doneLines" style="margin-top:14px"></div>
+    <div class="totals"><span>To pay at the counter</span><span class="money" id="doneTotal"></span></div>
+    <div class="actions">
+      <button class="btn" type="button" data-go="menu">Order something else</button>
+    </div>
+    <div class="past" id="past" hidden>
+      <h2>Your other orders at this table</h2>
+      <div id="pastList"></div>
+    </div>
+  </section>
+</main>
+
+<div class="cartbar" id="cartbar" hidden>
+  <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
+</div>
+
+<script src="order.js"></script>
+</body>
+</html>

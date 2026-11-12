@@ -1,0 +1,906 @@
+{
+ "currency": "INR",
+ "categories": [
+  {
+   "id": "beverages",
+   "name": "Beverages",
+   "items": [
+    {
+     "id": "beverages-tea-irani-style",
+     "name": "Tea (Irani Style)",
+     "veg": true,
+     "price": 30
+    },
+    {
+     "id": "beverages-tea-without-sugar",
+     "name": "Tea Without Sugar",
+     "veg": true,
+     "price": 40
+    },
+    {
+     "id": "beverages-special-tea",
+     "name": "Special Tea",
+     "veg": true,
+     "price": 60
+    },
+    {
+     "id": "beverages-hot-nescafe-regular",
+     "name": "Hot Nescafe (Regular)",
+     "veg": true,
+     "price": 60
+    },
+    {
+     "id": "beverages-black-coffee",
+     "name": "Black Coffee",
+     "veg": true,
+     "price": 50
+    },
+    {
+     "id": "beverages-hot-bournvita-chocolate",
+     "name": "Hot Bournvita / Chocolate",
+     "veg": true,
+     "price": 90
+    },
+    {
+     "id": "beverages-hot-milk-plain",
+     "name": "Hot Milk (Plain)",
+     "veg": true,
+     "price": 70
+    },
+    {
+     "id": "beverages-mojito-mint-watermelon-green-apple-blue-curacao",
+     "name": "Mojito (Mint, Watermelon, Green Apple, Blue Curacao)",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "beverages-cold-coffee",
+     "name": "Cold Coffee",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "beverages-iced-tea-lime",
+     "name": "Iced Tea (Lime)",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "beverages-masala-buttermilk",
+     "name": "Masala Buttermilk",
+     "veg": true,
+     "price": 50
+    },
+    {
+     "id": "beverages-plain-buttermilk",
+     "name": "Plain Buttermilk",
+     "veg": true,
+     "price": 40
+    },
+    {
+     "id": "beverages-kokam-sarbat",
+     "name": "Kokam Sarbat",
+     "veg": true,
+     "price": 80
+    },
+    {
+     "id": "beverages-fresh-lime-soda",
+     "name": "Fresh Lime Soda",
+     "veg": true,
+     "price": 90
+    },
+    {
+     "id": "beverages-cold-drink",
+     "name": "Cold Drink",
+     "veg": true,
+     "price": null,
+     "note": "Price as marked (MRP), pay at counter"
+    },
+    {
+     "id": "beverages-water-bottle",
+     "name": "Water Bottle",
+     "veg": true,
+     "price": null,
+     "note": "Price as marked (MRP), pay at counter"
+    }
+   ]
+  },
+  {
+   "id": "all-day-bites",
+   "name": "All Day Bites",
+   "items": [
+    {
+     "id": "all-day-bites-bun-maska",
+     "name": "Bun Maska",
+     "veg": true,
+     "price": 70
+    },
+    {
+     "id": "all-day-bites-bun-maska-cheese",
+     "name": "Bun Maska Cheese",
+     "veg": true,
+     "price": 80
+    },
+    {
+     "id": "all-day-bites-bun-jam",
+     "name": "Bun Jam",
+     "veg": true,
+     "price": 70
+    },
+    {
+     "id": "all-day-bites-bun-maska-jam",
+     "name": "Bun Maska Jam",
+     "veg": true,
+     "price": 80
+    },
+    {
+     "id": "all-day-bites-nutella-bun-maska",
+     "name": "Nutella Bun Maska",
+     "veg": true,
+     "price": 120
+    },
+    {
+     "id": "all-day-bites-nutella-bun",
+     "name": "Nutella Bun",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "all-day-bites-bread-jam",
+     "name": "Bread Jam",
+     "veg": true,
+     "price": 55
+    },
+    {
+     "id": "all-day-bites-bread-butter",
+     "name": "Bread Butter",
+     "veg": true,
+     "price": 55
+    },
+    {
+     "id": "all-day-bites-bread-toast-butter",
+     "name": "Bread Toast Butter",
+     "veg": true,
+     "price": 65
+    },
+    {
+     "id": "all-day-bites-bread-butter-jam",
+     "name": "Bread Butter Jam",
+     "veg": true,
+     "price": 65
+    },
+    {
+     "id": "all-day-bites-bread-toast-jam",
+     "name": "Bread Toast Jam",
+     "veg": true,
+     "price": 65
+    },
+    {
+     "id": "all-day-bites-cheese-toast",
+     "name": "Cheese Toast",
+     "veg": true,
+     "price": 75
+    }
+   ]
+  },
+  {
+   "id": "grilled-bun",
+   "name": "Grilled Bun",
+   "items": [
+    {
+     "id": "grilled-bun-grilled-bun-maska",
+     "name": "Grilled Bun Maska",
+     "veg": true,
+     "price": 90
+    },
+    {
+     "id": "grilled-bun-grilled-bun-maska-cheese",
+     "name": "Grilled Bun Maska Cheese",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "grilled-bun-grilled-bun-jam",
+     "name": "Grilled Bun Jam",
+     "veg": true,
+     "price": 80
+    },
+    {
+     "id": "grilled-bun-grilled-bun-maska-jam",
+     "name": "Grilled Bun Maska Jam",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "grilled-bun-grilled-bun-omelette",
+     "name": "Grilled Bun Omelette",
+     "veg": false,
+     "price": 150
+    },
+    {
+     "id": "grilled-bun-grilled-bun-cheese-omelette",
+     "name": "Grilled Bun Cheese Omelette",
+     "veg": false,
+     "price": 170
+    },
+    {
+     "id": "grilled-bun-grilled-bun-masala-omelette",
+     "name": "Grilled Bun Masala Omelette",
+     "veg": false,
+     "price": 190
+    },
+    {
+     "id": "grilled-bun-grilled-bun-cheese-masala-omelette",
+     "name": "Grilled Bun Cheese Masala Omelette",
+     "veg": false,
+     "price": 210
+    }
+   ]
+  },
+  {
+   "id": "omelettes",
+   "name": "Omelettes",
+   "items": [
+    {
+     "id": "omelettes-omelette",
+     "name": "Omelette",
+     "veg": false,
+     "price": 90
+    },
+    {
+     "id": "omelettes-half-fry",
+     "name": "Half Fry",
+     "veg": true,
+     "price": 90
+    },
+    {
+     "id": "omelettes-full-fry",
+     "name": "Full Fry",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "omelettes-masala-omelette",
+     "name": "Masala Omelette",
+     "veg": false,
+     "price": 120
+    },
+    {
+     "id": "omelettes-cheese-omelette",
+     "name": "Cheese Omelette",
+     "veg": false,
+     "price": 130
+    },
+    {
+     "id": "omelettes-cheese-masala-omelette",
+     "name": "Cheese Masala Omelette",
+     "veg": false,
+     "price": 140
+    },
+    {
+     "id": "omelettes-mushroom-omelette",
+     "name": "Mushroom Omelette",
+     "veg": false,
+     "price": 130
+    },
+    {
+     "id": "omelettes-chicken-omelette",
+     "name": "Chicken Omelette",
+     "veg": false,
+     "price": 180
+    },
+    {
+     "id": "omelettes-chicken-masala-omelette",
+     "name": "Chicken Masala Omelette",
+     "veg": false,
+     "price": 190
+    },
+    {
+     "id": "omelettes-chicken-kheema-omelette",
+     "name": "Chicken Kheema Omelette",
+     "veg": false,
+     "price": 180
+    },
+    {
+     "id": "omelettes-mutton-kheema-omelette",
+     "name": "Mutton Kheema Omelette",
+     "veg": false,
+     "price": 210
+    },
+    {
+     "id": "omelettes-egg-white-omelette-2-eggs",
+     "name": "Egg White Omelette (2 eggs)",
+     "veg": false,
+     "price": 100
+    },
+    {
+     "id": "omelettes-egg-white-masala-omelette-2-eggs",
+     "name": "Egg White Masala Omelette (2 eggs)",
+     "veg": false,
+     "price": 120
+    },
+    {
+     "id": "omelettes-boiled-eggs-1-pair-plain",
+     "name": "Boiled Eggs, 1 pair (Plain)",
+     "veg": false,
+     "price": 50
+    },
+    {
+     "id": "omelettes-boiled-eggs-1-pair-masala",
+     "name": "Boiled Eggs, 1 pair (Masala)",
+     "veg": false,
+     "price": 70
+    },
+    {
+     "id": "omelettes-add-pav",
+     "name": "Add pav",
+     "veg": true,
+     "price": 50,
+     "addon": true
+    },
+    {
+     "id": "omelettes-add-bread-slice-pair",
+     "name": "Add bread slice pair",
+     "veg": true,
+     "price": 25,
+     "addon": true
+    }
+   ]
+  },
+  {
+   "id": "stuffed-omelettes",
+   "name": "Stuffed Omelettes",
+   "items": [
+    {
+     "id": "stuffed-omelettes-bun-omelette",
+     "name": "Bun Omelette",
+     "veg": false,
+     "price": 140
+    },
+    {
+     "id": "stuffed-omelettes-bun-maska-omelette",
+     "name": "Bun Maska Omelette",
+     "veg": false,
+     "price": 150
+    },
+    {
+     "id": "stuffed-omelettes-bun-omelette-cheese",
+     "name": "Bun Omelette Cheese",
+     "veg": false,
+     "price": 160
+    },
+    {
+     "id": "stuffed-omelettes-bun-masala-omelette",
+     "name": "Bun Masala Omelette",
+     "veg": false,
+     "price": 150
+    },
+    {
+     "id": "stuffed-omelettes-bun-maska-masala-omelette",
+     "name": "Bun Maska Masala Omelette",
+     "veg": false,
+     "price": 160
+    },
+    {
+     "id": "stuffed-omelettes-bun-cheese-masala-omelette",
+     "name": "Bun Cheese Masala Omelette",
+     "veg": false,
+     "price": 170
+    },
+    {
+     "id": "stuffed-omelettes-bun-omelette-with-mushroom",
+     "name": "Bun Omelette with Mushroom",
+     "veg": false,
+     "price": 160
+    }
+   ]
+  },
+  {
+   "id": "omelette-sandwich",
+   "name": "Omelette Sandwich",
+   "items": [
+    {
+     "id": "omelette-sandwich-masala-omelette-sandwich",
+     "name": "Masala Omelette Sandwich",
+     "veg": false,
+     "price": 170
+    },
+    {
+     "id": "omelette-sandwich-plain-omelette-sandwich",
+     "name": "Plain Omelette Sandwich",
+     "veg": false,
+     "price": 160
+    },
+    {
+     "id": "omelette-sandwich-add-cheese",
+     "name": "Add cheese",
+     "veg": true,
+     "price": 30,
+     "addon": true
+    }
+   ]
+  },
+  {
+   "id": "grilled-sandwiches",
+   "name": "Grilled Sandwiches",
+   "items": [
+    {
+     "id": "grilled-sandwiches-veg-grilled-sandwich",
+     "name": "Veg Grilled Sandwich",
+     "veg": true,
+     "price": 140
+    },
+    {
+     "id": "grilled-sandwiches-veg-club-grilled-sandwich",
+     "name": "Veg Club Grilled Sandwich",
+     "veg": true,
+     "price": 140
+    },
+    {
+     "id": "grilled-sandwiches-paneer-grilled-sandwich",
+     "name": "Paneer Grilled Sandwich",
+     "veg": true,
+     "price": 150
+    },
+    {
+     "id": "grilled-sandwiches-paneer-tikka-grilled-sandwich",
+     "name": "Paneer Tikka Grilled Sandwich",
+     "veg": true,
+     "price": 160
+    },
+    {
+     "id": "grilled-sandwiches-veg-cheese-grilled-sandwich",
+     "name": "Veg Cheese Grilled Sandwich",
+     "veg": true,
+     "price": 160
+    },
+    {
+     "id": "grilled-sandwiches-bombay-toast",
+     "name": "Bombay Toast",
+     "veg": true,
+     "price": 130
+    },
+    {
+     "id": "grilled-sandwiches-mushroom-sandwich",
+     "name": "Mushroom Sandwich",
+     "veg": true,
+     "price": 160
+    },
+    {
+     "id": "grilled-sandwiches-egg-grilled-sandwich",
+     "name": "Egg Grilled Sandwich",
+     "veg": false,
+     "price": 150
+    },
+    {
+     "id": "grilled-sandwiches-chicken-tikka-sandwich",
+     "name": "Chicken Tikka Sandwich",
+     "veg": false,
+     "price": 140
+    },
+    {
+     "id": "grilled-sandwiches-chicken-grilled-sandwich",
+     "name": "Chicken Grilled Sandwich",
+     "veg": false,
+     "price": 180
+    },
+    {
+     "id": "grilled-sandwiches-chicken-kheema-sandwich",
+     "name": "Chicken Kheema Sandwich",
+     "veg": false,
+     "price": 220
+    }
+   ]
+  },
+  {
+   "id": "maggi",
+   "name": "Maggi",
+   "items": [
+    {
+     "id": "maggi-plain-maggi",
+     "name": "Plain Maggi",
+     "veg": true,
+     "price": 70
+    },
+    {
+     "id": "maggi-masala-maggi",
+     "name": "Masala Maggi",
+     "veg": true,
+     "price": 90
+    },
+    {
+     "id": "maggi-veg-maggi",
+     "name": "Veg Maggi",
+     "veg": true,
+     "price": 90
+    },
+    {
+     "id": "maggi-veg-masala-maggi-spicy",
+     "name": "Veg Masala Maggi (Spicy)",
+     "veg": true,
+     "price": 90
+    },
+    {
+     "id": "maggi-plain-maggi-with-cheese",
+     "name": "Plain Maggi with Cheese",
+     "veg": true,
+     "price": 100
+    },
+    {
+     "id": "maggi-masala-maggi-with-cheese",
+     "name": "Masala Maggi with Cheese",
+     "veg": true,
+     "price": 110
+    },
+    {
+     "id": "maggi-veg-masala-maggi-with-cheese",
+     "name": "Veg Masala Maggi with Cheese",
+     "veg": true,
+     "price": 120
+    }
+   ]
+  },
+  {
+   "id": "maggi-non-veg",
+   "name": "Maggi (Non-Veg)",
+   "items": [
+    {
+     "id": "maggi-non-veg-egg-maggi",
+     "name": "Egg Maggi",
+     "veg": false,
+     "price": 100
+    },
+    {
+     "id": "maggi-non-veg-egg-maggi-with-cheese",
+     "name": "Egg Maggi with Cheese",
+     "veg": false,
+     "price": 120
+    },
+    {
+     "id": "maggi-non-veg-chicken-maggi",
+     "name": "Chicken Maggi",
+     "veg": false,
+     "price": 120
+    },
+    {
+     "id": "maggi-non-veg-chicken-maggi-with-cheese",
+     "name": "Chicken Maggi with Cheese",
+     "veg": false,
+     "price": 140
+    }
+   ]
+  },
+  {
+   "id": "finger-food",
+   "name": "Finger Food",
+   "items": [
+    {
+     "id": "finger-food-french-fries-plain",
+     "name": "French Fries (Plain)",
+     "veg": true,
+     "price": 110
+    },
+    {
+     "id": "finger-food-french-fries-masala",
+     "name": "French Fries (Masala)",
+     "veg": true,
+     "price": 130
+    },
+    {
+     "id": "finger-food-peri-peri-french-fries",
+     "name": "Peri Peri French Fries",
+     "veg": true,
+     "price": 140
+    },
+    {
+     "id": "finger-food-cheese-french-fries",
+     "name": "Cheese French Fries",
+     "veg": true,
+     "price": 150
+    },
+    {
+     "id": "finger-food-french-toast",
+     "name": "French Toast",
+     "veg": false,
+     "price": 120
+    },
+    {
+     "id": "finger-food-masala-french-toast",
+     "name": "Masala French Toast",
+     "veg": false,
+     "price": 140
+    },
+    {
+     "id": "finger-food-cheese-chilly-toast",
+     "name": "Cheese Chilly Toast",
+     "veg": true,
+     "price": 140
+    }
+   ]
+  },
+  {
+   "id": "classic-bites-veg",
+   "name": "Classic Bites (Veg)",
+   "items": [
+    {
+     "id": "classic-bites-veg-pav-bhaji-2-pav",
+     "name": "Pav Bhaji (2 pav)",
+     "veg": true,
+     "price": 150
+    },
+    {
+     "id": "classic-bites-veg-cheese-pav-bhaji-2-pav",
+     "name": "Cheese Pav Bhaji (2 pav)",
+     "veg": true,
+     "price": 170
+    },
+    {
+     "id": "classic-bites-veg-veg-kheema-pav-2-pav",
+     "name": "Veg Kheema Pav (2 pav)",
+     "veg": true,
+     "price": 220
+    },
+    {
+     "id": "classic-bites-veg-paneer-bhurji",
+     "name": "Paneer Bhurji",
+     "veg": true,
+     "price": 260
+    }
+   ]
+  },
+  {
+   "id": "classic-bites-non-veg",
+   "name": "Classic Bites (Non-Veg)",
+   "items": [
+    {
+     "id": "classic-bites-non-veg-egg-bhurji-2-pav",
+     "name": "Egg Bhurji (2 pav)",
+     "veg": false,
+     "price": 160
+    },
+    {
+     "id": "classic-bites-non-veg-boiled-egg-bhurji-2-pav",
+     "name": "Boiled Egg Bhurji (2 pav)",
+     "veg": false,
+     "price": 180
+    },
+    {
+     "id": "classic-bites-non-veg-egg-ghotala-2-pav",
+     "name": "Egg Ghotala (2 pav)",
+     "veg": false,
+     "price": 200
+    },
+    {
+     "id": "classic-bites-non-veg-scrambled-egg",
+     "name": "Scrambled Egg",
+     "veg": false,
+     "price": 190
+    },
+    {
+     "id": "classic-bites-non-veg-egg-kheema-pav-2-pav",
+     "name": "Egg Kheema Pav (2 pav)",
+     "veg": false,
+     "price": 220
+    },
+    {
+     "id": "classic-bites-non-veg-mutton-cutlet",
+     "name": "Mutton Cutlet",
+     "veg": false,
+     "price": 220
+    },
+    {
+     "id": "classic-bites-non-veg-chicken-kheema-pav-2-pav",
+     "name": "Chicken Kheema Pav (2 pav)",
+     "veg": false,
+     "price": 320
+    },
+    {
+     "id": "classic-bites-non-veg-mutton-kheema-pav-2-pav",
+     "name": "Mutton Kheema Pav (2 pav)",
+     "veg": false,
+     "price": 350
+    },
+    {
+     "id": "classic-bites-non-veg-mutton-kheema-fry-with-eggs-2-pav",
+     "name": "Mutton Kheema Fry with Eggs (2 pav)",
+     "veg": false,
+     "price": 360
+    }
+   ]
+  },
+  {
+   "id": "parathas",
+   "name": "Parathas",
+   "items": [
+    {
+     "id": "parathas-aloo-paratha",
+     "name": "Aloo Paratha",
+     "veg": true,
+     "price": 80
+    },
+    {
+     "id": "parathas-mix-paratha",
+     "name": "Mix Paratha",
+     "veg": true,
+     "price": 170
+    },
+    {
+     "id": "parathas-paneer-paratha",
+     "name": "Paneer Paratha",
+     "veg": true,
+     "price": 190
+    }
+   ]
+  },
+  {
+   "id": "parathas-non-veg",
+   "name": "Parathas (Non-Veg)",
+   "items": [
+    {
+     "id": "parathas-non-veg-egg-paratha",
+     "name": "Egg Paratha",
+     "veg": false,
+     "price": 200
+    },
+    {
+     "id": "parathas-non-veg-chicken-kheema-paratha",
+     "name": "Chicken Kheema Paratha",
+     "veg": false,
+     "price": 250
+    },
+    {
+     "id": "parathas-non-veg-mutton-kheema-paratha",
+     "name": "Mutton Kheema Paratha",
+     "veg": false,
+     "price": 290
+    }
+   ]
+  },
+  {
+   "id": "rolls-veg",
+   "name": "Rolls (Veg)",
+   "items": [
+    {
+     "id": "rolls-veg-aloo-roll",
+     "name": "Aloo Roll",
+     "veg": true,
+     "price": 160
+    },
+    {
+     "id": "rolls-veg-chhole-masala-roll",
+     "name": "Chhole Masala Roll",
+     "veg": true,
+     "price": 160
+    },
+    {
+     "id": "rolls-veg-paneer-roll",
+     "name": "Paneer Roll",
+     "veg": true,
+     "price": 170
+    },
+    {
+     "id": "rolls-veg-mushroom-masala-roll",
+     "name": "Mushroom Masala Roll",
+     "veg": true,
+     "price": 170
+    },
+    {
+     "id": "rolls-veg-mix-veg-roll",
+     "name": "Mix Veg Roll",
+     "veg": true,
+     "price": 180
+    },
+    {
+     "id": "rolls-veg-add-cheese",
+     "name": "Add cheese",
+     "veg": true,
+     "price": 30,
+     "addon": true
+    }
+   ]
+  },
+  {
+   "id": "rolls-non-veg",
+   "name": "Rolls (Non-Veg)",
+   "items": [
+    {
+     "id": "rolls-non-veg-egg-roll",
+     "name": "Egg Roll",
+     "veg": false,
+     "price": 170
+    },
+    {
+     "id": "rolls-non-veg-egg-bhurji-roll",
+     "name": "Egg Bhurji Roll",
+     "veg": false,
+     "price": 180
+    },
+    {
+     "id": "rolls-non-veg-chicken-roll",
+     "name": "Chicken Roll",
+     "veg": false,
+     "price": 200
+    },
+    {
+     "id": "rolls-non-veg-chicken-kheema-roll",
+     "name": "Chicken Kheema Roll",
+     "veg": false,
+     "price": 220
+    },
+    {
+     "id": "rolls-non-veg-mutton-kheema-roll",
+     "name": "Mutton Kheema Roll",
+     "veg": false,
+     "price": 250
+    },
+    {
+     "id": "rolls-non-veg-add-cheese",
+     "name": "Add cheese",
+     "veg": true,
+     "price": 20,
+     "addon": true
+    }
+   ]
+  },
+  {
+   "id": "biryani-rice-veg",
+   "name": "Biryani & Rice (Veg)",
+   "items": [
+    {
+     "id": "biryani-rice-veg-veg-pulav-tawa-pulav",
+     "name": "Veg Pulav / Tawa Pulav",
+     "veg": true,
+     "price": 230
+    },
+    {
+     "id": "biryani-rice-veg-veg-fried-rice",
+     "name": "Veg Fried Rice",
+     "veg": true,
+     "price": 240
+    },
+    {
+     "id": "biryani-rice-veg-veg-biryani",
+     "name": "Veg Biryani",
+     "veg": true,
+     "price": 250
+    }
+   ]
+  },
+  {
+   "id": "biryani-rice-non-veg",
+   "name": "Biryani & Rice (Non-Veg)",
+   "items": [
+    {
+     "id": "biryani-rice-non-veg-egg-biryani-2-eggs",
+     "name": "Egg Biryani (2 eggs)",
+     "veg": false,
+     "price": 260
+    },
+    {
+     "id": "biryani-rice-non-veg-egg-fried-rice",
+     "name": "Egg Fried Rice",
+     "veg": false,
+     "price": 280
+    },
+    {
+     "id": "biryani-rice-non-veg-chicken-fried-rice",
+     "name": "Chicken Fried Rice",
+     "veg": false,
+     "price": 330
+    },
+    {
+     "id": "biryani-rice-non-veg-chicken-biryani-with-bone",
+     "name": "Chicken Biryani (With Bone)",
+     "veg": false,
+     "price": 330
+    },
+    {
+     "id": "biryani-rice-non-veg-chicken-biryani-boneless",
+     "name": "Chicken Biryani (Boneless)",
+     "veg": false,
+     "price": 350
+    }
+   ]
+  }
+ ]
+}

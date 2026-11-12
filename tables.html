@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Table QR cards · Good Luck Cafe</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="images/logo.jpg" type="image/jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    .setup { max-width: 860px; margin: 0 auto; padding: 28px 20px 8px; }
+    .setup h1 { font-size: 2rem; margin-bottom: 6px; }
+    .setup p { color: var(--muted); max-width: 62ch; }
+    .form { display: grid; grid-template-columns: 1fr 140px auto; gap: 12px; align-items: end; margin-top: 18px; }
+    .form label { display: grid; gap: 6px; font-weight: 600; font-size: .9rem; }
+    .form input { height: 44px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; }
+    .setup .notice { margin-top: 14px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; max-width: 860px; margin: 20px auto 60px; padding: 0 20px; }
+    .card { background: #fff; border-radius: 14px; padding: 22px 18px 18px; text-align: center; box-shadow: 0 6px 16px rgba(0,0,0,.08); break-inside: avoid; border-top: 10px solid var(--red); }
+    .card img.logo { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 8px; }
+    .card .tbl { font-family: "Rozha One", Georgia, serif; font-size: 2.1rem; line-height: 1; color: var(--ink); }
+    .card .qr { width: 180px; height: 180px; margin: 14px auto 12px; }
+    .card .qr img, .card .qr canvas { width: 100% !important; height: 100% !important; }
+    .card .cta { font-weight: 600; font-size: 1.05rem; }
+    .card .small { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      body { background: #fff; }
+      .setup { display: none; }
+      .cards { grid-template-columns: repeat(2, 1fr); gap: 10mm; margin: 0; padding: 0; max-width: none; }
+      .card { box-shadow: none; border: 1px solid #ccc; border-top: 10px solid var(--red); padding: 10mm 6mm 8mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    @media (max-width: 640px) { .form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<section class="setup">
+  <h1>Table QR cards</h1>
+  <p>Each card opens the order page for that table. Check the website address, set how many tables there are, then print and place one card on each table.</p>
+  <div class="form">
+    <label>Website address <input id="base" type="url" spellcheck="false"></label>
+    <label>Tables <input id="count" type="number" min="1" max="100"></label>
+    <button class="btn" type="button" id="print">Print cards</button>
+  </div>
+  <p class="notice warn" id="localWarn" hidden>This address only works on this Wi-Fi network. Print the final cards once the site is on its own domain, or the codes will stop working.</p>
+</section>
+
+<div class="cards" id="cards"></div>
+
+<script>
+(function () {
+  'use strict';
+  var base = document.getElementById('base'), count = document.getElementById('count'), cards = document.getElementById('cards');
+  base.value = location.origin;
+  function build() {
+    var root = base.value.trim().replace(/\/+$/, '');
+    var n = Math.max(1, Math.min(100, parseInt(count.value, 10) || 1));
+    document.getElementById('localWarn').hidden = !/localhost|127\.0\.0\.1|^https?:\/\/(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(root);
+    cards.replaceChildren();
+    for (var t = 1; t <= n; t++) {
+      var url = root + '/order.html?table=' + t;
+      var card = document.createElement('article'); card.className = 'card';
+      var logo = document.createElement('img'); logo.className = 'logo'; logo.src = 'images/logo.jpg'; logo.alt = '';
+      var tbl = document.createElement('div'); tbl.className = 'tbl'; tbl.textContent = 'Table ' + t;
+      var qr = document.createElement('div'); qr.className = 'qr'; qr.title = url;
+      var cta = document.createElement('p'); cta.className = 'cta'; cta.textContent = 'Scan to see the menu & order';
+      var small = document.createElement('p'); small.className = 'small'; small.textContent = 'Pay at the counter after your meal';
+      card.append(logo, tbl, qr, cta, small);
+      cards.append(card);
+      new QRCode(qr, { text: url, width: 360, height: 360, colorDark: '#1f1a17', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    }
+  }
+  fetch('/api/menu').then(function (r) { return r.json(); }).then(function (m) { count.value = m.tables; })
+    .catch(function () { count.value = 10; }).then(build);
+  base.addEventListener('change', build);
+  count.addEventListener('change', build);
+  document.getElementById('print').addEventListener('click', function () { window.print(); });
+})();
+</script>
+</body>
+</html>

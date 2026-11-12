@@ -1,0 +1,11 @@
+{
+  "name": "goodluck-cafe",
+  "private": true,
+  "description": "Good Luck Cafe website and table ordering",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
