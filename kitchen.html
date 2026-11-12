@@ -53,6 +53,16 @@
     .ticket[data-status="ready"] .go { background: var(--ok); border-color: var(--ok); }
 
     .err { margin: 18px 20px 0; }
+    /* cancellations made from the other screen (kitchen <-> reception) */
+    .cancels { margin: 18px 20px 0; padding: 14px 16px; border-radius: 14px; background: #fbe4df; border: 1.5px solid #e9a99c; }
+    .cancels h2 { font-size: 1.3rem; color: #7d1a12; margin-bottom: 6px; }
+    .cancels ul { list-style: none; display: grid; gap: 8px; }
+    .cancels li { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: #fff; }
+    .cancels li.fresh { animation: arrive 1.6s cubic-bezier(.16,1,.3,1); }
+    .cancels .cx-what { flex: 1; min-width: 200px; }
+    .cancels .cx-what b { font-weight: 600; }
+    .cancels .cx-meta { color: var(--muted); font-size: .85rem; }
+    .cancels .btn { min-height: 38px; padding: 0 16px; font-size: .9rem; }
     .activity { margin: 0 20px 40px; padding: 14px 16px; background: var(--paper); border-radius: 14px; }
     .activity summary { cursor: pointer; font-weight: 600; }
     .activity summary small { color: var(--muted); font-weight: 400; }
@@ -157,6 +167,11 @@
 <div id="app" hidden>
 <div id="err"></div>
 
+<section class="cancels" id="cancels" aria-labelledby="cxTitle" aria-live="polite" hidden>
+  <h2 id="cxTitle">Cancelled</h2>
+  <ul id="cancelList"></ul>
+</section>
+
 <section class="approvals" id="approvals" aria-labelledby="apTitle" hidden>
   <h2 id="apTitle">Needs your OK</h2>
   <p>Table orders: the first order from a phone, approve it if someone is sitting at that table. Online orders: call the customer to confirm. Payments: check the cafe's UPI app, then tap Received.</p>
@@ -183,6 +198,6 @@
 </details>
 </div>
 
-<script src="kitchen.js?v=14"></script>
+<script src="kitchen.js?v=15"></script>
 </body>
 </html>

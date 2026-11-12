@@ -413,6 +413,36 @@
       .then(function () { btn.disabled = false; });
   });
 
+  // ---------- the cafe cancelled an order: tell the customer wherever they are ----------
+  function cancelText(o) {
+    var table = !o.kind || o.kind === 'table';
+    return (o.cancelledBy === 'kitchen' ? 'Sorry, the kitchen couldn\'t make order #' + o.id + ' and had to cancel it.' : 'Sorry, the cafe cancelled order #' + o.id + '.') +
+      (o.paidAt ? ' You paid ' + rupees(o.total) + ', so please ask ' + (table ? 'at the counter' : 'the cafe') + ' for your refund.'
+        : table ? ' Please ask at the counter if you have questions.' : ' If that\'s a mistake, please call the cafe.');
+  }
+  var watched = {}; // order id -> last status we saw
+  function acked() { return store.get('glc-cx-ack', []); }
+  function showCancelAlert(o, token) {
+    if (acked().indexOf(o.id) !== -1) return;
+    $('cancelText').textContent = cancelText(o);
+    $('cancelAlert').hidden = false;
+    $('cancelSee').onclick = function () { ack(o.id); showOrder(o.id, token); };
+    $('cancelOk').onclick = function () { ack(o.id); };
+    if (navigator.vibrate) try { navigator.vibrate([120, 60, 120]); } catch (e) {}
+  }
+  function ack(id) { store.set('glc-cx-ack', acked().concat(id).slice(-50)); $('cancelAlert').hidden = true; }
+  // Check this phone's recent orders every 8 s, on every screen.
+  function watchMyOrders() {
+    recentOrders().forEach(function (m) {
+      if (watched[m.id] === 'served' || watched[m.id] === 'cancelled') return;
+      api('/api/orders/' + m.id + '?t=' + encodeURIComponent(m.t)).then(function (o) {
+        if (o.status === 'cancelled' && watched[m.id] !== 'cancelled') showCancelAlert(o, m.t);
+        watched[m.id] = o.status;
+      }).catch(function () {});
+    });
+  }
+  setInterval(function () { if (table != null) watchMyOrders(); }, 8000);
+
   // ---------- after ordering ----------
   var STATUS_TEXT = {
     pending: 'Waiting for the counter to confirm your first order. This only happens once per phone.',
@@ -449,7 +479,7 @@
     document.querySelectorAll('#steps li').forEach(function (li, idx) {
       li.className = o.status === 'cancelled' ? '' : idx < at || o.status === 'served' ? 'done' : idx === at ? 'now' : '';
     });
-    $('statusLine').textContent = (o.kind && o.kind !== 'table'
+    $('statusLine').textContent = o.status === 'cancelled' ? cancelText(o) : (o.kind && o.kind !== 'table'
       ? ONLINE_TEXT[o.status + (o.status === 'ready' || o.status === 'served' ? o.kind : '')] : STATUS_TEXT[o.status]) || '';
     $('doneLines').replaceChildren.apply($('doneLines'), o.items.map(function (l) {
       return el('div', { class: 'line' }, el('span', { class: 'mark ' + (l.veg ? 'veg' : 'nonveg'), role: 'img', 'aria-label': l.veg ? 'Veg' : 'Egg or non-veg' }),

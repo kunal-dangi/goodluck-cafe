@@ -160,3 +160,11 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .pay-state { margin-top: 18px; padding: 14px 16px; border-radius: 14px; font-weight: 600; text-align: center; }
 .pay-state.checking { background: #fff1d6; color: #5a3a00; }
 .pay-state.paid { background: #e3f3e7; color: #126128; }
+
+/* the cafe cancelled one of your orders: shown on every screen */
+.cancel-alert { position: sticky; top: 60px; z-index: 25; background: #b3191e; color: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.18); }
+.cancel-alert .wrap { padding-top: 14px; padding-bottom: 14px; }
+.cancel-alert p { font-weight: 600; }
+.cx-actions { display: flex; gap: 10px; margin-top: 10px; }
+.cx-actions .btn { min-height: 40px; background: #fff; border-color: #fff; color: #b3191e; }
+.cx-actions .btn-quiet { background: transparent; color: #fff; border-color: rgba(255,255,255,.7); }

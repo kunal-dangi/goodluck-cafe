@@ -132,7 +132,7 @@ db.exec(`
 const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
 if (!cols('orders').includes('session_id')) db.exec('ALTER TABLE orders ADD COLUMN session_id INTEGER');
 if (!cols('orders').includes('seat_id')) db.exec('ALTER TABLE orders ADD COLUMN seat_id INTEGER');
-for (const [c, def] of [['pay_claimed_at', 'TEXT'], ['paid_at', 'TEXT'], ['paid_method', 'TEXT'], ['kind', "TEXT NOT NULL DEFAULT 'table'"], ['phone', "TEXT NOT NULL DEFAULT ''"], ['address', "TEXT NOT NULL DEFAULT ''"],
+for (const [c, def] of [['cancelled_by', 'TEXT'], ['pay_claimed_at', 'TEXT'], ['paid_at', 'TEXT'], ['paid_method', 'TEXT'], ['kind', "TEXT NOT NULL DEFAULT 'table'"], ['phone', "TEXT NOT NULL DEFAULT ''"], ['address', "TEXT NOT NULL DEFAULT ''"],
   ['lat', 'REAL'], ['lng', 'REAL'], ['distance_m', 'INTEGER'], ['fee', 'INTEGER NOT NULL DEFAULT 0']]) {
   if (!cols('orders').includes(c)) db.exec(`ALTER TABLE orders ADD COLUMN ${c} ${def}`);
 }
@@ -155,6 +155,9 @@ const q = {
   pendingOfPhone: db.prepare(`SELECT COUNT(*) n FROM orders WHERE phone = ? AND status = 'pending'`),
   bill: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount, COALESCE(SUM(CASE WHEN paid_at IS NOT NULL THEN total END),0) paid
                     FROM orders WHERE session_id = ? AND status NOT IN ('cancelled','pending')`),
+  setCancelled: db.prepare("UPDATE orders SET status = 'cancelled', cancelled_by = ?, updated_at = ? WHERE id = ?"),
+  // cancellations in the last 30 minutes, so the receptionist sees what the kitchen called off
+  recentCancelled: db.prepare(`SELECT * FROM orders WHERE status = 'cancelled' AND updated_at >= ? ORDER BY updated_at DESC LIMIT 20`),
   payChecks: db.prepare(`SELECT * FROM orders WHERE pay_claimed_at IS NOT NULL AND paid_at IS NULL AND status != 'cancelled' ORDER BY pay_claimed_at`),
   claimPaid: db.prepare('UPDATE orders SET pay_claimed_at = ? WHERE id = ?'),
   markPaid: db.prepare('UPDATE orders SET paid_at = ?, paid_method = ? WHERE id = ?'),
@@ -191,7 +194,7 @@ const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const newToken = () => crypto.randomBytes(24).toString('base64url');
 const orderOut = (r) => r && { id: r.id, kind: r.kind || 'table', table: r.table_no, distanceM: r.distance_m, items: JSON.parse(r.items), note: r.note, name: r.name,
   phone: r.phone || '', address: r.address || '', lat: r.lat, lng: r.lng, distanceKm: r.distance_m == null ? null : Math.round(r.distance_m / 100) / 10,
-  fee: r.fee || 0, total: r.total, status: r.status, payClaimedAt: r.pay_claimed_at || null, paidAt: r.paid_at || null, paidMethod: r.paid_method || null, createdAt: r.created_at, updatedAt: r.updated_at };
+  fee: r.fee || 0, total: r.total, status: r.status, cancelledBy: r.cancelled_by || null, payClaimedAt: r.pay_claimed_at || null, paidAt: r.paid_at || null, paidMethod: r.paid_method || null, createdAt: r.created_at, updatedAt: r.updated_at };
 
 // Allowed moves for staff. Anything else is refused.
 // 'pending' (a new phone's first order) only moves through approve / reject below.
@@ -577,6 +580,7 @@ async function api(req, res, url) {
     if (req.method === 'GET' && p[2] === 'orders') {
       const done = q.servedSince.get(startOfIndiaDay());
       return send(res, 200, { orders: q.active.all().map(orderOut), payChecks: q.payChecks.all().map(orderOut), upi: !!UPI.id,
+        cancelled: q.recentCancelled.all(new Date(Date.now() - 30 * 60e3).toISOString()).map(orderOut),
         servedToday: done.n, takingsToday: done.amount, open: isOpen() });
     }
     // Approve / reject a new phone's first order. Approving trusts the phone for the rest of the visit;
@@ -608,7 +612,10 @@ async function api(req, res, url) {
       const seat = r.seat_id && q.seatById.get(r.seat_id);
       const waiting = seat ? q.pendingOfSeat.all(seat.id) : [r];
       const to = p[4] === 'approve' ? 'new' : 'cancelled';
-      for (const o of waiting) { q.setStatus.run(to, now(), o.id); staffLog(p[4] === 'approve' ? 'Approved' : 'Rejected', orderLabel(o)); }
+      for (const o of waiting) {
+        if (to === 'cancelled') q.setCancelled.run('reception', now(), o.id); else q.setStatus.run(to, now(), o.id);
+        staffLog(p[4] === 'approve' ? 'Approved' : 'Rejected', orderLabel(o));
+      }
       if (seat) p[4] === 'approve' ? q.approveSeat.run(seat.id) : q.dropSeat.run(seat.id);
       for (const o of waiting) broadcast('order', orderOut(q.order.get(o.id)));
       if (r.table_no) broadcast('table', tableView(r.table_no));
@@ -618,10 +625,11 @@ async function api(req, res, url) {
       const id = Number(p[3]);
       const r = q.order.get(id);
       if (!r) return fail(res, 404, 'not-found', 'Order not found.');
-      const { status } = await readJson(req, 1024);
+      const { status, by } = await readJson(req, 1024);
+      const who = by === 'kitchen' ? 'kitchen' : 'reception';
       if (!NEXT[r.status].includes(status)) return fail(res, 409, 'status', `Can't move an order from ${r.status} to ${status}.`);
-      q.setStatus.run(status, now(), id);
-      staffLog({ preparing: 'Started preparing', ready: 'Marked ready', served: r.kind === 'delivery' ? 'Delivered' : r.kind === 'pickup' ? 'Collected' : 'Served', cancelled: 'Cancelled' }[status] || status, orderLabel(r));
+      if (status === 'cancelled') q.setCancelled.run(who, now(), id); else q.setStatus.run(status, now(), id);
+      staffLog({ preparing: 'Started preparing', ready: 'Marked ready', served: r.kind === 'delivery' ? 'Delivered' : r.kind === 'pickup' ? 'Collected' : 'Served', cancelled: who === 'kitchen' ? 'Cancelled by kitchen' : 'Cancelled' }[status] || status, orderLabel(r));
       const order = orderOut(q.order.get(id));
       broadcast('order', order);
       if (status === 'cancelled' && r.table_no) broadcast('table', tableView(r.table_no));
@@ -650,7 +658,7 @@ async function api(req, res, url) {
         staffLog('Turned off', `table ${table} · bill ₹${view.bill} for ${view.orders} order${view.orders === 1 ? '' : 's'}`);
         q.dropSeats.run(s.id); // every phone at that table loses access
         for (const o of q.active.all().filter((o) => o.session_id === s.id && o.status === 'pending')) {
-          q.setStatus.run('cancelled', now(), o.id); broadcast('order', orderOut(q.order.get(o.id)));
+          q.setCancelled.run('reception', now(), o.id); broadcast('order', orderOut(q.order.get(o.id)));
         }
         const closed = { table, open: false, closedBill: view.bill, closedOrders: view.orders };
         broadcast('table', closed);

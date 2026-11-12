@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-  <link rel="stylesheet" href="order.css?v=4">
+  <link rel="stylesheet" href="order.css?v=5">
 </head>
 <body>
 
@@ -22,6 +22,10 @@
     <span class="table-pill" id="tablePill" hidden></span>
   </div>
 </header>
+
+<div class="cancel-alert" id="cancelAlert" role="alert" hidden>
+  <div class="wrap"><p id="cancelText"></p><div class="cx-actions"><button class="btn" type="button" id="cancelSee">See order</button><button class="btn btn-quiet" type="button" id="cancelOk">OK</button></div></div>
+</div>
 
 <main class="wrap">
   <div id="banner"></div>
@@ -140,6 +144,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=12"></script>
+<script src="order.js?v=13"></script>
 </body>
 </html>

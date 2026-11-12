@@ -25,7 +25,9 @@
       }, function () { throw new Error('Can\'t reach the order server. Check the connection.'); });
   }
 
-  var orders = new Map(), tables = new Map(), payChecks = new Map(), servedToday = 0, takings = 0;
+  var orders = new Map(), tables = new Map(), payChecks = new Map(), cancelled = new Map(), servedToday = 0, takings = 0;
+  var BOARD = new URLSearchParams(location.search).get('view') === 'board';
+  var ME = BOARD ? 'kitchen' : 'reception'; // who is using this screen
   var soundOn = false, audio = null, firstLoad = true, stream = null;
 
   // ---------------- login ----------------
@@ -142,6 +144,27 @@
       el('div', { class: 't-foot' }, el('span', { class: 'who', text: !isOnline(o) && o.name ? 'For ' + o.name : isOnline(o) && !o.paidAt ? 'Cash / UPI on ' + (o.kind === 'delivery' ? 'delivery' : 'pickup') : '' }), el('b', { class: 'money', text: rupees(o.total) })),
       el('div', { class: 't-actions' }, ...acts));
   }
+  // ---------------- cancellations from the other screen ----------------
+  // Reception sees what the kitchen cancelled; the kitchen board sees what reception cancelled.
+  function seenCancels() { try { return JSON.parse(localStorage.getItem('glc-cx-seen-' + ME) || '[]'); } catch (e) { return []; } }
+  function markSeen(id) { try { localStorage.setItem('glc-cx-seen-' + ME, JSON.stringify(seenCancels().concat(id).slice(-200))); } catch (e) {} }
+  function fromOtherSide(o) { return (o.cancelledBy || 'reception') !== ME; }
+  function renderCancels(freshId) {
+    var seen = seenCancels();
+    var list = [...cancelled.values()].filter(function (o) { return fromOtherSide(o) && seen.indexOf(o.id) === -1; })
+      .sort(function (a, b) { return a.updatedAt < b.updatedAt ? 1 : -1; });
+    $('cancels').hidden = !list.length;
+    $('cancelList').replaceChildren(...list.map(function (o) {
+      var by = o.cancelledBy === 'kitchen' ? 'the kitchen' : 'reception';
+      return el('li', { class: o.id === freshId ? 'fresh' : '' },
+        el('div', { class: 'cx-what' },
+          el('div', {}, el('b', { text: where(o) + ' · #' + o.id }), ' cancelled by ' + by),
+          el('div', { class: 'cx-meta', text: o.items.map(function (l) { return l.qty + '× ' + l.name; }).join(', ') + ' · ' + rupees(o.total) +
+            (o.paidAt ? ' · was paid ' + (o.paidMethod === 'cash' ? 'in cash' : 'by UPI') + ': refund it' : '') + ' · ' + ago(o.updatedAt) })),
+        el('button', { class: 'btn btn-quiet', type: 'button', onclick: function () { markSeen(o.id); renderCancels(); } }, 'OK, seen'));
+    }));
+  }
+
   // ---------------- payments (UPI) ----------------
   function payChip(o) {
     if (o.paidAt) return el('p', { class: 'pay-chip paid', text: 'Paid ' + (o.paidMethod === 'cash' ? 'in cash' : 'by UPI') + ' ✓' });
@@ -202,6 +225,10 @@
   }
   function upsert(o) {
     var was = orders.get(o.id), wasCheck = payChecks.has(o.id);
+    if (o.status === 'cancelled' && !cancelled.has(o.id)) {
+      cancelled.set(o.id, o); renderCancels(o.id);
+      if (fromOtherSide(o) && !firstLoad) ding();
+    }
     if (o.payClaimedAt && !o.paidAt && o.status !== 'cancelled') payChecks.set(o.id, o); else payChecks.delete(o.id);
     var newCheck = !wasCheck && payChecks.has(o.id);
     var isNew = (!was && (o.status === 'new' || o.status === 'pending')) || (o.status === 'new' && was && was.status === 'pending');
@@ -213,7 +240,7 @@
   }
   function move(o, status) {
     error('');
-    call('PATCH', '/api/kitchen/orders/' + o.id, { status: status }).then(upsert).catch(function (e) { error(e.message); load(); });
+    call('PATCH', '/api/kitchen/orders/' + o.id, { status: status, by: ME }).then(upsert).catch(function (e) { error(e.message); load(); });
   }
   function error(msg) { $('err').replaceChildren(msg ? el('p', { class: 'notice error err', role: 'alert', text: msg }) : ''); }
 
@@ -221,6 +248,8 @@
     return Promise.all([call('GET', '/api/kitchen/orders'), call('GET', '/api/kitchen/tables')]).then(function (r) {
       orders = new Map(r[0].orders.map(function (o) { return [o.id, o]; }));
       payChecks = new Map((r[0].payChecks || []).map(function (o) { return [o.id, o]; }));
+      cancelled = new Map((r[0].cancelled || []).map(function (o) { return [o.id, o]; }));
+      renderCancels();
       servedToday = r[0].servedToday; takings = r[0].takingsToday;
       tables = new Map(r[1].tables.map(function (t) { return [t.table, t]; }));
       renderOrders(null); renderTables();
