@@ -48,11 +48,16 @@ const TUNNEL_ONLY = PUBLIC_HOST === '127.0.0.1' || PUBLIC_HOST === 'localhost' |
 const DB_FILE = process.env.DB || path.join(ROOT, 'data', 'orders.db');
 const STAFF_FILE = path.join(path.dirname(DB_FILE), 'staff.json');
 const STAFF_SESSION_HOURS = 12;
+const PRIVACY_DAYS = Number(process.env.PRIVACY_DAYS) || 30; // customer phone / address / location are erased after this
+const LOG_DAYS = 90;                                           // staff activity log is kept this long
 
 // ======================================================================
 // Staff password: scrypt hash on disk, never the password itself.
 // ======================================================================
-fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+// Orders hold customers' phone numbers and addresses: only this computer user may read the data folder.
+process.umask(0o077);
+fs.mkdirSync(path.dirname(DB_FILE), { recursive: true, mode: 0o700 });
+fs.chmodSync(path.dirname(DB_FILE), 0o700);
 function hashPassword(pw, salt = crypto.randomBytes(16).toString('hex')) {
   return { salt, hash: crypto.scryptSync(pw, salt, 64).toString('hex') };
 }
@@ -89,6 +94,7 @@ for (const c of menu.categories) for (const i of c.items) items.set(i.id, { ...i
 // Database
 // ======================================================================
 const db = new DatabaseSync(DB_FILE);
+for (const f of [DB_FILE, DB_FILE + '-wal', DB_FILE + '-shm', STAFF_FILE]) if (fs.existsSync(f)) fs.chmodSync(f, 0o600);
 db.exec(`
   PRAGMA journal_mode = WAL;
   CREATE TABLE IF NOT EXISTS orders (
@@ -101,6 +107,7 @@ db.exec(`
     opened_at TEXT NOT NULL, expires_at TEXT NOT NULL, closed_at TEXT, join_until TEXT);
   CREATE INDEX IF NOT EXISTS sessions_table ON table_sessions(table_no, closed_at);
   CREATE TABLE IF NOT EXISTS staff_sessions (token_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS staff_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, action TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '');
 `);
 // Upgrades for databases made by earlier versions.
 const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
@@ -144,6 +151,13 @@ const q = {
   staff: db.prepare('SELECT * FROM staff_sessions WHERE token_hash = ? AND expires_at > ?'),
   dropStaff: db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?'),
   cleanStaff: db.prepare('DELETE FROM staff_sessions WHERE expires_at <= ?'),
+  log: db.prepare('INSERT INTO staff_log (at, action, detail) VALUES (?, ?, ?)'),
+  logRecent: db.prepare('SELECT at, action, detail FROM staff_log ORDER BY id DESC LIMIT ?'),
+  logPrune: db.prepare('DELETE FROM staff_log WHERE at < ?'),
+  // 3. privacy: after PRIVACY_DAYS keep only what the accounts need (items, totals, time), drop who and where
+  erasePersonal: db.prepare(`UPDATE orders SET name = '', phone = '', address = '', note = '', lat = NULL, lng = NULL
+                             WHERE created_at < ? AND (name != '' OR phone != '' OR address != '' OR note != '' OR lat IS NOT NULL)`),
+  dropOldSeats: db.prepare('DELETE FROM seats WHERE session_id IN (SELECT id FROM table_sessions WHERE closed_at IS NOT NULL OR expires_at <= ?)'),
 };
 const now = () => new Date().toISOString();
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
@@ -185,23 +199,32 @@ const minutesFromNow = (m) => new Date(Date.now() + m * 60e3).toISOString();
 // Rate limits (in memory; reset on restart, which is fine for these)
 // ======================================================================
 const hits = new Map();
+const HITS_MAX = 50000; // a flood from many addresses can't grow memory without limit
+function remember(key, list) {
+  hits.delete(key); hits.set(key, list); // newest last
+  if (hits.size > HITS_MAX) for (const k of hits.keys()) { hits.delete(k); if (hits.size <= HITS_MAX * 0.9) break; }
+}
 function limited(key, max, windowMs) {
   const t = Date.now();
   const list = (hits.get(key) || []).filter((x) => t - x < windowMs);
-  if (list.length >= max) { hits.set(key, list); return true; }
-  list.push(t); hits.set(key, list);
+  if (list.length >= max) { remember(key, list); return true; }
+  list.push(t); remember(key, list);
   return false;
 }
 function countFail(key, windowMs) { // record a hit without blocking
   const t = Date.now();
-  hits.set(key, (hits.get(key) || []).filter((x) => t - x < windowMs).concat(t));
+  remember(key, (hits.get(key) || []).filter((x) => t - x < windowMs).concat(t));
 }
 function failures(key, windowMs) { const t = Date.now(); return (hits.get(key) || []).filter((x) => t - x < windowMs).length; }
-setInterval(() => {
-  const t = Date.now();
+function housekeeping() {
+  const t = Date.now(), daysAgo = (d) => new Date(t - d * 864e5).toISOString();
   for (const [k, v] of hits) if (!v.some((x) => t - x < 3600e3)) hits.delete(k);
   q.cleanStaff.run(now());
-}, 600e3).unref();
+  q.dropOldSeats.run(now());
+  q.erasePersonal.run(daysAgo(PRIVACY_DAYS));
+  q.logPrune.run(daysAgo(LOG_DAYS));
+}
+setInterval(housekeeping, 600e3).unref();
 
 // ======================================================================
 // Client address (rate limits only; not trusted for anything else)
@@ -300,6 +323,10 @@ function broadcast(event, data) {
   for (const res of listeners) res.write(msg);
 }
 setInterval(() => { for (const res of listeners) res.write(': ping\n\n'); }, 25000).unref();
+
+// Staff activity log: what was done and when (for "who rejected my order?" questions).
+const staffLog = (action, detail = '') => q.log.run(now(), action, String(detail).slice(0, 200));
+const orderLabel = (r) => `#${r.id} ` + (r.kind === 'delivery' ? `delivery for ${r.name}` : r.kind === 'pickup' ? `pickup for ${r.name}` : `table ${r.table_no}`);
 
 function isStaff(req) {
   const tok = cookies(req).glc_staff;
@@ -443,12 +470,14 @@ async function api(req, res, url) {
     if (req.method === 'POST' && p[2] === 'login') {
       if (failures(`login:${ip}`, 900e3) >= 5) return fail(res, 429, 'locked', 'Too many wrong passwords. Wait 15 minutes and try again.');
       const { password } = await readJson(req, 1024);
-      if (!checkPassword(password)) { countFail(`login:${ip}`, 900e3); return fail(res, 401, 'password', 'Wrong password.'); }
+      if (!checkPassword(password)) { countFail(`login:${ip}`, 900e3); staffLog('Wrong password'); return fail(res, 401, 'password', 'Wrong password.'); }
+      staffLog('Logged in');
       const tok = newToken(), t = Date.now();
       q.addStaff.run(sha(tok), new Date(t).toISOString(), new Date(t + STAFF_SESSION_HOURS * 3600e3).toISOString());
       return send(res, 200, { ok: true }, { 'Set-Cookie': cookie(req, 'glc_staff', tok, STAFF_SESSION_HOURS * 3600) });
     }
     if (req.method === 'POST' && p[2] === 'logout') {
+      staffLog('Logged out');
       const tok = cookies(req).glc_staff;
       if (tok) q.dropStaff.run(sha(tok));
       return send(res, 200, { ok: true }, { 'Set-Cookie': cookie(req, 'glc_staff', '', 0) });
@@ -473,7 +502,7 @@ async function api(req, res, url) {
       const seat = r.seat_id && q.seatById.get(r.seat_id);
       const waiting = seat ? q.pendingOfSeat.all(seat.id) : [r];
       const to = p[4] === 'approve' ? 'new' : 'cancelled';
-      for (const o of waiting) q.setStatus.run(to, now(), o.id);
+      for (const o of waiting) { q.setStatus.run(to, now(), o.id); staffLog(p[4] === 'approve' ? 'Approved' : 'Rejected', orderLabel(o)); }
       if (seat) p[4] === 'approve' ? q.approveSeat.run(seat.id) : q.dropSeat.run(seat.id);
       for (const o of waiting) broadcast('order', orderOut(q.order.get(o.id)));
       if (r.table_no) broadcast('table', tableView(r.table_no));
@@ -486,10 +515,14 @@ async function api(req, res, url) {
       const { status } = await readJson(req, 1024);
       if (!NEXT[r.status].includes(status)) return fail(res, 409, 'status', `Can't move an order from ${r.status} to ${status}.`);
       q.setStatus.run(status, now(), id);
+      staffLog({ preparing: 'Started preparing', ready: 'Marked ready', served: r.kind === 'delivery' ? 'Delivered' : r.kind === 'pickup' ? 'Collected' : 'Served', cancelled: 'Cancelled' }[status] || status, orderLabel(r));
       const order = orderOut(q.order.get(id));
       broadcast('order', order);
       if (status === 'cancelled' && r.table_no) broadcast('table', tableView(r.table_no));
       return send(res, 200, order);
+    }
+    if (req.method === 'GET' && p[2] === 'log') {
+      return send(res, 200, { entries: q.logRecent.all(100), keptDays: LOG_DAYS });
     }
     if (req.method === 'GET' && p[2] === 'tables') {
       const open = new Map(q.allOpen.all(now()).map((s) => [s.table_no, s]));
@@ -502,11 +535,13 @@ async function api(req, res, url) {
       if (!Number.isInteger(table) || table < 1 || table > TABLES) return fail(res, 404, 'table', 'Unknown table number.');
       const s = activeSession(table);
       if (p[4] === 'open') {
+        if (!s) staffLog('Turned on', `table ${table}`);
         if (!s) { const t = Date.now(); q.newSession.run(table, new Date(t).toISOString(), new Date(t + SESSION_HOURS * 3600e3).toISOString(), minutesFromNow(JOIN_MINUTES)); }
       } else if (p[4] === 'close') {
         if (!s) return fail(res, 409, 'not-open', 'That table is already off.');
         const view = tableView(table, s);
         q.closeSession.run(now(), s.id);
+        staffLog('Turned off', `table ${table} · bill ₹${view.bill} for ${view.orders} order${view.orders === 1 ? '' : 's'}`);
         q.dropSeats.run(s.id); // every phone at that table loses access
         for (const o of q.active.all().filter((o) => o.session_id === s.id && o.status === 'pending')) {
           q.setStatus.run('cancelled', now(), o.id); broadcast('order', orderOut(q.order.get(o.id)));
@@ -517,6 +552,7 @@ async function api(req, res, url) {
       } else if (p[4] === 'allow-join') {
         if (!s) return fail(res, 409, 'not-open', 'Turn the table on first.');
         q.setJoinUntil.run(minutesFromNow(JOIN_MINUTES), s.id);
+        staffLog('Let more phones join', `table ${table}`);
       } else return fail(res, 404, 'not-found', 'Not found.');
       const view = tableView(table);
       broadcast('table', view);
@@ -567,9 +603,34 @@ function serveStatic(req, res, url) {
   });
 }
 
+// The staff door answers only a browser on this computer that asked for localhost by name.
+// - Anything that came through a tunnel or proxy carries forwarding headers: refused (protects against
+//   the tunnel being pointed at the wrong port by mistake).
+// - The Host must be localhost / 127.0.0.1: refused otherwise (blocks "DNS rebinding", where a website
+//   open in the receptionist's browser tries to talk to this computer under its own name).
+const FORWARDED = ['cf-connecting-ip', 'cf-ray', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-real-ip', 'forwarded'];
+const STAFF_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'].map((h) => `${h}:${STAFF_PORT}`));
+const PUBLIC_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'].map((h) => `${h}:${PORT}`));
+if (PUBLIC_URL) { try { PUBLIC_HOSTS.add(new URL(PUBLIC_URL).host); } catch { console.error(`PUBLIC_URL "${PUBLIC_URL}" isn't a valid address.`); process.exit(1); } }
+function doorRefuses(side, req) {
+  const host = String(req.headers.host || '').toLowerCase();
+  if (side === 'staff') {
+    if (FORWARDED.some((h) => h in req.headers)) return 'The staff screen only works on the cafe computer.';
+    if (!STAFF_HOSTS.has(host)) return 'Open the staff screen as http://localhost:' + STAFF_PORT;
+  } else if (PUBLIC_URL && TUNNEL_ONLY && !PUBLIC_HOSTS.has(host)) {
+    return 'Unknown address.';
+  }
+  return null;
+}
+
 function handler(side) {
   return async (req, res) => {
     req.side = side;
+    const refused = doorRefuses(side, req);
+    if (refused) {
+      if (side === 'staff') console.warn(`Staff door refused a request: ${refused} (host "${req.headers.host || ''}")`);
+      return send(res, 403, refused, { 'Content-Type': 'text/plain; charset=utf-8' });
+    }
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'same-origin');
@@ -592,7 +653,9 @@ const onListenError = (what, port) => (e) => {
   process.exit(1);
 };
 // Customer door: listens on this computer only (the tunnel connects to it here).
-http.createServer(handler('public')).on('error', onListenError('customer door', PORT)).listen(PORT, PUBLIC_HOST, () => {
+// Slow-request guard on the customer door: whole request within 15 s, headers within 10 s.
+const publicServer = http.createServer({ requestTimeout: 15000, headersTimeout: 10000, keepAliveTimeout: 5000, connectionsCheckingInterval: 2000 }, handler('public'));
+publicServer.on('error', onListenError('customer door', PORT)).listen(PORT, PUBLIC_HOST, () => {
   console.log(`Good Luck Cafe ordering  (tables 1-${TABLES}, ordering ${ORDER_HOURS}, phones can join for ${JOIN_MINUTES} min, tables switch off after ${SESSION_HOURS} h)`);
   console.log(`  Customer door:  http://${PUBLIC_HOST}:${PORT}/order.html?table=1   ${PUBLIC_URL ? '-> public as ' + PUBLIC_URL : '(set PUBLIC_URL to your tunnel address)'}`);
   if (!TUNNEL_ONLY) console.log(`  WARNING: customer door is open to the network (PUBLIC_HOST=${PUBLIC_HOST}). Use this only for testing.`);
@@ -600,4 +663,6 @@ http.createServer(handler('public')).on('error', onListenError('customer door', 
 // Staff door: hard-wired to this computer. Not configurable on purpose.
 http.createServer(handler('staff')).on('error', onListenError('staff door', STAFF_PORT)).listen(STAFF_PORT, '127.0.0.1', () => {
   console.log(`  Staff door:     http://localhost:${STAFF_PORT}   (receptionist + kitchen screen, QR cards: /tables.html; this computer only)`);
+  console.log(`  Privacy: customer phone numbers, addresses and locations are erased after ${PRIVACY_DAYS} days.`);
 });
+housekeeping();

@@ -99,6 +99,27 @@ On the cafe computer, open `http://localhost:8081/tables.html`. The address on t
 | `PORT` / `STAFF_PORT` | 8080 / 8081 | Customer door / staff door |
 | `PUBLIC_URL` | (none) | The customers' address, used on the QR cards |
 | `PUBLIC_HOST` | `127.0.0.1` | Leave as is. `0.0.0.0` only to test with phones on the same network, never in the cafe |
+| `PRIVACY_DAYS` | 30 | Customer names, numbers, addresses and locations are erased after this many days |
+
+## Security at a glance
+
+| Protection | What it does |
+|---|---|
+| Two doors | The receptionist and kitchen screen exist only on the cafe computer. The internet sees only the customer pages. |
+| Staff door checks | It refuses anything that came through a tunnel or proxy, and any request not addressed to `localhost`. This guards against the tunnel being pointed at the wrong port, and against "DNS rebinding" tricks from websites open in the receptionist's browser. |
+| Staff login | A password stored only as a scrambled hash. 5 wrong tries locks logins for 15 minutes. Logins last 12 hours. |
+| Table lock + approval | Phones join a table only in the 10 minutes after it's turned on. Each phone's first order needs the receptionist's OK. |
+| Online orders | The server checks the distance itself (10 km). Every order needs a confirming phone call. There are limits per mobile number and per visitor. |
+| Prices | Always taken from `menu.json` on the server. A phone can't change a price or a delivery charge. |
+| Customer data | Names, numbers, addresses, locations and notes are erased after 30 days (`PRIVACY_DAYS`). Totals are kept for the accounts. The data folder can only be read by the computer user who runs the server. |
+| Activity log | Every login, approval, rejection, cancellation and table on/off is recorded. See **Activity log** at the bottom of the staff screen. It's kept for 90 days. |
+| Web hardening | Strict browser security settings, no framing, same-site cookies, an origin check on every change, size and time limits on requests, and a fingerprint check on the QR library. |
+
+**Your part:**
+- **Use a strong staff password.** Don't save it in the browser on a computer customers can reach.
+- **Turn on disk encryption** (BitLocker on Windows, FileVault on Mac), so a stolen laptop doesn't expose customer data.
+- **Lock the computer** (Windows+L or Ctrl+Cmd+Q) when nobody is at the counter.
+- **Keep Windows/macOS and Node.js updated.**
 
 ## Looking after it
 

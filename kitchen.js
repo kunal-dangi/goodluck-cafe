@@ -195,6 +195,19 @@
     });
   }
 
+  // ---------------- activity log ----------------
+  function loadActivity() {
+    if (!$('activity').open) return;
+    call('GET', '/api/kitchen/log').then(function (d) {
+      $('activityList').replaceChildren(...(d.entries.length ? d.entries.map(function (e) {
+        var t = new Date(e.at);
+        return el('li', {}, el('time', { datetime: e.at, text: t.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + t.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) }),
+          el('b', { text: e.action }), el('span', { text: e.detail }));
+      }) : [el('li', { text: 'Nothing yet.' })]));
+    }).catch(function (e) { error(e.message); });
+  }
+  $('activity').addEventListener('toggle', loadActivity);
+
   // two-note chime; browsers only allow sound after a tap, hence the button
   function ding() {
     if (!soundOn || !audio) return;
@@ -220,8 +233,8 @@
       $('live').textContent = 'Live'; $('live').classList.add('on');
       load().then(function () { firstLoad = false; error(''); }).catch(function (e) { error(e.message); });
     });
-    stream.addEventListener('order', function (e) { upsert(JSON.parse(e.data)); });
-    stream.addEventListener('table', function (e) { var t = JSON.parse(e.data); tables.set(t.table, t); renderTables(); });
+    stream.addEventListener('order', function (e) { upsert(JSON.parse(e.data)); loadActivity(); });
+    stream.addEventListener('table', function (e) { var t = JSON.parse(e.data); tables.set(t.table, t); renderTables(); loadActivity(); });
     stream.addEventListener('error', function () {
       $('live').textContent = 'Reconnecting…'; $('live').classList.remove('on');
       // a 401 also lands here; check whether we were logged out
