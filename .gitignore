@@ -1,3 +1,5 @@
 .claude/
 .DS_Store
 data/
+.env.local
+table-qr-cards-live.pdf

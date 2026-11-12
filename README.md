@@ -16,6 +16,20 @@ Both doors share the same database, so when the receptionist taps *Approve* or *
 
 The staff door is never published. The tunnel only points at port 8080, and the staff door only accepts connections from the computer it runs on.
 
+## Quick live test from a Mac (no domain needed)
+
+1. `brew install cloudflared`, then `npm run set-password -- "a-strong-password"`.
+2. Create `.env.local` in this folder (never committed) with the cafe's UPI ID, and, only for a test away from the cafe, the two test lines:
+   ```
+   UPI_ID=the-cafe-upi-id@bank
+   TABLE_GPS=off
+   ORDER_HOURS=always
+   ```
+3. Run `./start-live.sh`. It prints a free `https://….trycloudflare.com` address and keeps the Mac awake. Staff screen: `http://localhost:8081`.
+4. Print the QR cards from `http://localhost:8081/tables.html`, and point the website's **Order online** links at `<address>/online.html`.
+
+The address changes every time `start-live.sh` restarts, so the QR cards and website links need updating each time. A domain (below) fixes that.
+
 ## One-time setup
 
 You need:
@@ -100,7 +114,9 @@ Then:
 1. **Customer pays:** once an order is confirmed, the customer's order screen shows **Pay ₹X with UPI**. It opens their UPI app with the cafe's ID, the amount and a note like "Order 15 Table 10" filled in. There's also a QR code for paying from another phone.
 2. **Customer tells you:** after paying, they tap **I've paid**.
 3. **You check:** **Payment to check** appears under **Needs your OK**. Look in the cafe's UPI app for that amount and note, then tap **Received** or **Not received**.
-4. **Customer sees the result:** "Paid ✓", or a message to pay at the counter. Table tiles show "UPI paid ₹X · ₹Y to collect", and **Turn off** shows how much is still to collect.
+4. **Customer sees the result:** "Paid ✓", or a message to pay at the counter. Table tiles show "Paid ₹X · ₹Y to collect", and **Turn off** shows how much is still to collect.
+
+**Paid in cash:** tap **Paid (cash)** on an order, or **Paid in cash** on a table tile to mark everything still unpaid on that table as paid (tap twice to confirm).
 
 Without `UPI_ID` there's no UPI button, and customers pay in cash or UPI at the counter as before.
 

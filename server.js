@@ -161,6 +161,7 @@ const q = {
   payChecks: db.prepare(`SELECT * FROM orders WHERE pay_claimed_at IS NOT NULL AND paid_at IS NULL AND status != 'cancelled' ORDER BY pay_claimed_at`),
   claimPaid: db.prepare('UPDATE orders SET pay_claimed_at = ? WHERE id = ?'),
   markPaid: db.prepare('UPDATE orders SET paid_at = ?, paid_method = ? WHERE id = ?'),
+  unpaidOfSession: db.prepare(`SELECT id FROM orders WHERE session_id = ? AND paid_at IS NULL AND status NOT IN ('cancelled','pending')`),
   openSession: db.prepare(`SELECT * FROM table_sessions WHERE table_no = ? AND closed_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1`),
   allOpen: db.prepare(`SELECT * FROM table_sessions WHERE closed_at IS NULL AND expires_at > ?`),
   newSession: db.prepare("INSERT INTO table_sessions (table_no, pin, opened_at, expires_at, join_until) VALUES (?, '', ?, ?, ?)"),
@@ -663,6 +664,13 @@ async function api(req, res, url) {
         const closed = { table, open: false, closedBill: view.bill, closedOrders: view.orders };
         broadcast('table', closed);
         return send(res, 200, closed);
+      } else if (p[4] === 'paid-cash') {
+        if (!s) return fail(res, 409, 'not-open', 'That table is off.');
+        const due = tableView(table, s);
+        const ids = q.unpaidOfSession.all(s.id).map((o) => o.id);
+        if (!ids.length) return fail(res, 409, 'paid', 'Nothing left to pay on that table.');
+        for (const id of ids) { q.markPaid.run(now(), 'cash', id); broadcast('order', orderOut(q.order.get(id))); }
+        staffLog('Paid in cash', `table ${table} · ₹${due.bill - due.paid}`);
       } else if (p[4] === 'allow-join') {
         if (!s) return fail(res, 409, 'not-open', 'Turn the table on first.');
         q.setJoinUntil.run(minutesFromNow(JOIN_MINUTES), s.id);

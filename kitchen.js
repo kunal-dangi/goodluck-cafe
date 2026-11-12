@@ -77,11 +77,14 @@
     return el('div', { class: 'tile open' },
       el('div', { class: 'tile-top' }, el('span', { class: 'tile-num', text: t.table }), el('span', { class: 'tile-state', text: 'On' })),
       el('div', { class: 'tile-bill money', text: info }),
-      t.paid ? el('div', { class: 'tile-paid money', text: 'UPI paid ' + rupees(t.paid) + (due > 0 ? ' · ' + rupees(due) + ' to collect' : ' · all paid') }) : null,
+      t.paid ? el('div', { class: 'tile-paid money', text: 'Paid ' + rupees(t.paid) + (due > 0 ? ' · ' + rupees(due) + ' to collect' : ' · all paid') }) : null,
       left ? el('div', { class: 'tile-join' }, el('b', { text: 'New phones can join' }), ' · ' + left + ' min left')
            : el('div', { class: 'tile-join', text: 'Locked to these phones' }),
       left ? null : el('button', { class: 'link', type: 'button', onclick: function () { tableAction(t.table, 'allow-join'); } }, 'Let more phones join'),
       el('div', { class: 'tile-actions' },
+        due > 0 ? el('button', { class: 'btn btn-quiet', type: 'button', 'aria-label': 'Table ' + t.table + ' paid ' + rupees(due) + ' in cash', onclick: function (e) {
+          twoTap(e.currentTarget, 'Tap again · ' + rupees(due) + ' cash', function () { tableAction(t.table, 'paid-cash'); });
+        } }, 'Paid in cash') : null,
         el('button', { class: 'btn btn-ink', type: 'button', 'aria-label': 'Turn off table ' + t.table, onclick: function (e) {
           twoTap(e.currentTarget, !t.orders ? 'Tap again to turn off' : due > 0 ? 'Tap again · collect ' + rupees(due) : 'Tap again · all paid', function () { tableAction(t.table, 'close'); });
         } }, 'Turn off')));
@@ -127,6 +130,11 @@
       acts.push(el('button', { class: 'btn cancel', type: 'button', 'aria-label': 'Cancel order ' + o.id + ', ' + whereLong(o), onclick: function (e) {
         twoTap(e.currentTarget, 'Tap again', function () { move(o, 'cancelled'); });
       } }, 'Cancel'));
+    }
+    if (!BOARD && !o.paidAt) {
+      acts.push(el('button', { class: 'btn btn-quiet', type: 'button', 'aria-label': 'Order ' + o.id + ' paid in cash', onclick: function (e) {
+        twoTap(e.currentTarget, 'Tap again · ' + rupees(o.total) + ' cash', function () { payResult(o, 'cash'); });
+      } }, 'Paid (cash)'));
     }
     var mins = minutesAgo(o.createdAt);
     return el('article', { class: 'ticket' + (fresh ? ' fresh' : ''), 'data-status': o.status, 'data-id': o.id },
