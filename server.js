@@ -1,15 +1,21 @@
 // Good Luck Cafe ordering server. No dependencies: Node 22.13+ (built-in SQLite).
+// Runs on the cafe's own computer. One server, one database, two doors:
+//   customer door  PORT (8080)        order page + ordering API. The ONLY door the internet tunnel points at.
+//   staff door     STAFF_PORT (8081)  receptionist/kitchen screen + QR cards. Only this computer can open it.
 //
 //   npm start                         start the server
 //   npm run set-password -- <new>     set the staff password
 //
 // Environment (all optional):
-//   PORT            8080
+//   PORT            8080                customer door
+//   STAFF_PORT      8081                staff door (always this computer only)
+//   PUBLIC_HOST     127.0.0.1           customer door listens here; the tunnel connects to it locally.
+//                                       Use 0.0.0.0 only for testing with phones on the same network.
+//   PUBLIC_URL      ""                  the customers' address, e.g. https://order.goodluckcafe.in (used on QR cards)
 //   TABLES          12                  number of tables
 //   ORDER_HOURS     "06:00-23:30"       India time, or "always"
 //   SESSION_HOURS   4                   a table left switched on turns itself off after this long
 //   JOIN_MINUTES    10                  phones can join a table only this long after it's switched on
-//   TRUST_PROXY     0                   1 when running behind a reverse proxy / hosting platform (reads X-Forwarded-For)
 //   STAFF_PASSWORD  ""                  overrides the saved staff password
 //   DB              data/orders.db
 'use strict';
@@ -21,11 +27,16 @@ const { DatabaseSync } = require('node:sqlite');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT) || 8080;
+const STAFF_PORT = Number(process.env.STAFF_PORT) || 8081;
+const PUBLIC_HOST = process.env.PUBLIC_HOST || '127.0.0.1';
+const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
 const TABLES = Number(process.env.TABLES) || 12;
 const ORDER_HOURS = process.env.ORDER_HOURS || '06:00-23:30';
 const SESSION_HOURS = Number(process.env.SESSION_HOURS) || 4;
 const JOIN_MINUTES = Number(process.env.JOIN_MINUTES) || 10;
-const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+// The customer door only sees the tunnel (it listens on this computer only), so it can trust the
+// visitor address and https flag the tunnel adds. With PUBLIC_HOST=0.0.0.0 (testing) it can't.
+const TUNNEL_ONLY = PUBLIC_HOST === '127.0.0.1' || PUBLIC_HOST === 'localhost' || PUBLIC_HOST === '::1';
 const DB_FILE = process.env.DB || path.join(ROOT, 'data', 'orders.db');
 const STAFF_FILE = path.join(path.dirname(DB_FILE), 'staff.json');
 const STAFF_SESSION_HOURS = 12;
@@ -180,7 +191,8 @@ setInterval(() => {
 // Client address (rate limits only; not trusted for anything else)
 // ======================================================================
 function clientIp(req) {
-  let ip = TRUST_PROXY ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '';
+  const viaTunnel = req.side === 'public' && TUNNEL_ONLY;
+  let ip = viaTunnel ? String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '';
   if (!ip) ip = req.socket.remoteAddress || '';
   if (ip.startsWith('::ffff:')) ip = ip.slice(7);
   return ip;
@@ -197,7 +209,7 @@ function cookies(req) {
   }
   return out;
 }
-function isHttps(req) { return req.socket.encrypted || (TRUST_PROXY && req.headers['x-forwarded-proto'] === 'https'); }
+function isHttps(req) { return req.socket.encrypted || (req.side === 'public' && TUNNEL_ONLY && req.headers['x-forwarded-proto'] === 'https'); }
 function cookie(req, name, value, maxAgeSec) {
   return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSec}${isHttps(req) ? '; Secure' : ''}`;
 }
@@ -253,6 +265,8 @@ function isStaff(req) {
 async function api(req, res, url) {
   const p = url.pathname.split('/').filter(Boolean); // ['api', ...]
   const ip = clientIp(req);
+  // Staff API doesn't exist on the customer door.
+  if (req.side === 'public' && (p[1] === 'kitchen' || p[1] === 'staff')) return fail(res, 404, 'not-found', 'Not found.');
 
   // Requests that change something must come from our own pages (blocks other sites posting on a visitor's behalf).
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -264,7 +278,7 @@ async function api(req, res, url) {
 
   // ---------------- public ----------------
   if (req.method === 'GET' && url.pathname === '/api/menu') {
-    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS });
+    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL });
   }
 
   // Table status for the customer page.
@@ -446,15 +460,18 @@ const PRIVATE = new Set(['server.js', 'package.json', 'package-lock.json']);
 const APP_CSP = ["default-src 'self'", "script-src 'self' https://cdnjs.cloudflare.com", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src https://fonts.gstatic.com", "img-src 'self' data:", "connect-src 'self'", "frame-ancestors 'none'", "base-uri 'none'", "form-action 'self'", "object-src 'none'"].join('; ');
 const APP_PAGES = new Set(['order.html', 'kitchen.html', 'tables.html']);
+const STAFF_ONLY = new Set(['kitchen.html', 'kitchen.js', 'tables.html', 'tables.js']); // never on the customer door
 
 function serveStatic(req, res, url) {
   let rel;
   try { rel = decodeURIComponent(url.pathname); } catch { return send(res, 400, 'Bad request', { 'Content-Type': 'text/plain' }); }
+  if (req.side === 'staff' && rel === '/') { res.writeHead(302, { Location: '/kitchen.html' }); return res.end(); }
   if (rel.endsWith('/')) rel += 'index.html';
   const file = path.normalize(path.join(ROOT, rel));
   const name = path.relative(ROOT, file);
   const type = TYPES[path.extname(file).toLowerCase()];
-  if (!type || name.startsWith('..') || path.isAbsolute(name) || name.split(path.sep).some((x) => x.startsWith('.')) || name.split(path.sep)[0] === 'data' || PRIVATE.has(name)) {
+  if (!type || name.startsWith('..') || path.isAbsolute(name) || name.split(path.sep).some((x) => x.startsWith('.')) || name.split(path.sep)[0] === 'data' || PRIVATE.has(name)
+      || (req.side === 'public' && STAFF_ONLY.has(name))) {
     return send(res, 404, 'Not found', { 'Content-Type': 'text/plain' });
   }
   fs.readFile(file, (err, data) => {
@@ -466,23 +483,37 @@ function serveStatic(req, res, url) {
   });
 }
 
-http.createServer(async (req, res) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Referrer-Policy', 'same-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  if (isHttps(req)) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
-  let url;
-  try { url = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, { error: 'bad-request', message: 'Bad request.' }); }
-  try {
-    if (url.pathname.startsWith('/api/')) await api(req, res, url);
-    else if (req.method === 'GET' || req.method === 'HEAD') serveStatic(req, res, url);
-    else send(res, 405, { error: 'method', message: 'Method not allowed.' });
-  } catch (e) {
-    if (!res.headersSent) send(res, e.status || 500, { error: 'server', message: e.status ? e.message : 'Something went wrong. Please try again.' });
-    if (!e.status) console.error(e);
-  }
-}).listen(PORT, () => {
-  console.log(`Good Luck Cafe ordering on http://localhost:${PORT}  (tables 1-${TABLES}, ordering ${ORDER_HOURS}, phones can join for ${JOIN_MINUTES} min, tables switch off after ${SESSION_HOURS} h)`);
-  console.log(`  Kitchen + tables:  /kitchen.html     Customer:  /order.html?table=1     QR cards:  /tables.html`);
+function handler(side) {
+  return async (req, res) => {
+    req.side = side;
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'same-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    if (isHttps(req)) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
+    let url;
+    try { url = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, { error: 'bad-request', message: 'Bad request.' }); }
+    try {
+      if (url.pathname.startsWith('/api/')) await api(req, res, url);
+      else if (req.method === 'GET' || req.method === 'HEAD') serveStatic(req, res, url);
+      else send(res, 405, { error: 'method', message: 'Method not allowed.' });
+    } catch (e) {
+      if (!res.headersSent) send(res, e.status || 500, { error: 'server', message: e.status ? e.message : 'Something went wrong. Please try again.' });
+      if (!e.status) console.error(e);
+    }
+  };
+}
+const onListenError = (what, port) => (e) => {
+  console.error(e.code === 'EADDRINUSE' ? `Port ${port} (${what}) is already in use. Is the server already running?` : e);
+  process.exit(1);
+};
+// Customer door: listens on this computer only (the tunnel connects to it here).
+http.createServer(handler('public')).on('error', onListenError('customer door', PORT)).listen(PORT, PUBLIC_HOST, () => {
+  console.log(`Good Luck Cafe ordering  (tables 1-${TABLES}, ordering ${ORDER_HOURS}, phones can join for ${JOIN_MINUTES} min, tables switch off after ${SESSION_HOURS} h)`);
+  console.log(`  Customer door:  http://${PUBLIC_HOST}:${PORT}/order.html?table=1   ${PUBLIC_URL ? '-> public as ' + PUBLIC_URL : '(set PUBLIC_URL to your tunnel address)'}`);
+  if (!TUNNEL_ONLY) console.log(`  WARNING: customer door is open to the network (PUBLIC_HOST=${PUBLIC_HOST}). Use this only for testing.`);
+});
+// Staff door: hard-wired to this computer. Not configurable on purpose.
+http.createServer(handler('staff')).on('error', onListenError('staff door', STAFF_PORT)).listen(STAFF_PORT, '127.0.0.1', () => {
+  console.log(`  Staff door:     http://localhost:${STAFF_PORT}   (receptionist + kitchen screen, QR cards: /tables.html; this computer only)`);
 });

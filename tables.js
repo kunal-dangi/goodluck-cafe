@@ -2,11 +2,11 @@
 (function () {
   'use strict';
   var base = document.getElementById('base'), count = document.getElementById('count'), cards = document.getElementById('cards');
-  base.value = location.origin;
   function build() {
     var root = base.value.trim().replace(/\/+$/, '');
     var n = Math.max(1, Math.min(100, parseInt(count.value, 10) || 1));
-    document.getElementById('localWarn').hidden = !/localhost|127\.0\.0\.1|^https?:\/\/(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(root);
+    // Cards must point at the public address the tunnel gives, never at this computer.
+    document.getElementById('localWarn').hidden = /^https:\/\//.test(root) && !/localhost|127\.0\.0\.1/.test(root);
     cards.replaceChildren();
     for (var t = 1; t <= n; t++) {
       var url = root + '/order.html?table=' + t;
@@ -21,8 +21,10 @@
       new QRCode(qr, { text: url, width: 360, height: 360, colorDark: '#1f1a17', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
     }
   }
-  fetch('/api/menu').then(function (r) { return r.json(); }).then(function (m) { count.value = m.tables; })
-    .catch(function () { count.value = 10; }).then(build);
+  fetch('/api/menu').then(function (r) { return r.json(); }).then(function (m) {
+    count.value = m.tables;
+    base.value = m.publicUrl || 'https://';
+  }).catch(function () { count.value = 12; base.value = 'https://'; }).then(build);
   base.addEventListener('change', build);
   count.addEventListener('change', build);
   document.getElementById('print').addEventListener('click', function () { window.print(); });
