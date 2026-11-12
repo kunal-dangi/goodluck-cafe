@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
-  <link rel="stylesheet" href="order.css?v=2">
+  <link rel="stylesheet" href="order.css?v=3">
 </head>
 <body>
 
@@ -36,11 +36,27 @@
     <button class="btn" id="tableGo" type="button">Show the menu</button>
   </section>
 
+  <!-- 1b. are you at the cafe? (table ordering location check) -->
+  <section id="viewHere" class="here" hidden>
+    <div class="here-pin" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div>
+    <h1>Let's check you're at the cafe</h1>
+    <p id="hereLead">To order from your table, share your location once. It only checks that you're inside Good Luck Cafe.</p>
+    <button class="btn here-btn" id="hereBtn" type="button">Share my location</button>
+    <div id="hereMsg" aria-live="polite"></div>
+    <ol class="here-steps">
+      <li>Tap <b>Share my location</b></li>
+      <li>Choose <b>Allow</b> when your phone asks</li>
+      <li>Order from your table</li>
+    </ol>
+    <button class="orders-link" type="button" data-go="menu">Just look at the menu</button>
+  </section>
+
   <!-- 2. menu -->
   <section id="viewMenu" hidden>
     <div class="intro">
       <h1>What would you like?</h1>
       <p>Add items, then place your order. Pay at the counter when you're done.</p>
+      <p class="here-ok" id="hereOk" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span id="hereOkText">You're at the cafe</span></p>
     </div>
     <div class="tools">
       <label class="search"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="search" type="search" placeholder="Search: chai, maggi, roll…" autocomplete="off" aria-label="Search the menu"></label>
@@ -109,6 +125,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=7"></script>
+<script src="order.js?v=10"></script>
 </body>
 </html>

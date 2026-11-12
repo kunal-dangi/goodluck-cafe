@@ -99,6 +99,7 @@ On the cafe computer, open `http://localhost:8081/tables.html`. The address on t
 | `PORT` / `STAFF_PORT` | 8080 / 8081 | Customer door / staff door |
 | `PUBLIC_URL` | (none) | The customers' address, used on the QR cards |
 | `PUBLIC_HOST` | `127.0.0.1` | Leave as is. `0.0.0.0` only to test with phones on the same network, never in the cafe |
+| `TABLE_GPS` | on | Set `off` to skip the table location check, for example to demo the system away from the cafe |
 | `PRIVACY_DAYS` | 30 | Customer names, numbers, addresses and locations are erased after this many days |
 
 ## Security at a glance
@@ -109,6 +110,7 @@ On the cafe computer, open `http://localhost:8081/tables.html`. The address on t
 | Staff door checks | It refuses anything that came through a tunnel or proxy, and any request not addressed to `localhost`. This guards against the tunnel being pointed at the wrong port, and against "DNS rebinding" tricks from websites open in the receptionist's browser. |
 | Staff login | A password stored only as a scrambled hash. 5 wrong tries locks logins for 15 minutes. Logins last 12 hours. |
 | Table lock + approval | Phones join a table only in the 10 minutes after it's turned on. Each phone's first order needs the receptionist's OK. |
+| Location check (tables) | A phone must share its location and be within about 150 m of the cafe to order from a table. Someone at home with a photo of the QR code is told how far away they are and pointed to "Order online". The receptionist sees "Location checked · 24 m from the cafe" on the approval card. |
 | Online orders | The server checks the distance itself (10 km). Every order needs a confirming phone call. There are limits per mobile number and per visitor. |
 | Prices | Always taken from `menu.json` on the server. A phone can't change a price or a delivery charge. |
 | Customer data | Names, numbers, addresses, locations and notes are erased after 30 days (`PRIVACY_DAYS`). Totals are kept for the accounts. The data folder can only be read by the computer user who runs the server. |

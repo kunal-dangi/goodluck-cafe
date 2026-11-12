@@ -31,7 +31,8 @@
 
   var menu = null, items = {}, table = null, cart = {}, poll = null, current = null; // current: { id, token } shown in Done
   var ONLINE = document.body.dataset.mode === 'online';
-  var views = ONLINE ? ['Menu', 'Cart', 'Done'] : ['Picker', 'Menu', 'Cart', 'Done'];
+  var views = ONLINE ? ['Menu', 'Cart', 'Done'] : ['Picker', 'Here', 'Menu', 'Cart', 'Done'];
+  var askedHere = false; // shown the location screen once this visit
   var loc = null; // online delivery: { lat, lng, accuracy, km, fee } once the phone shares its location
   var seat = { open: false, joined: false, joinOpen: false, approved: false };
 
@@ -144,17 +145,19 @@
     if (ONLINE) updateSummary();
     placeLabel();
   }
+  function needLocation() { return !ONLINE && seat.open && !seat.joined && seat.joinOpen && menu.onsite && menu.onsite.on; }
   function placeLabel() {
     if (ONLINE) return onlineLabel();
     var btn = $('placeBtn'), ok = seat.open && seat.joined;
-    btn.disabled = !count() || !ok;
-    btn.textContent = ok ? 'Place order' : !seat.open ? 'Ordering is off for this table' : 'This table is in use';
+    btn.disabled = !count() || !(ok || needLocation());
+    btn.textContent = ok ? 'Place order' : needLocation() ? 'Share location to order' : !seat.open ? 'Ordering is off for this table' : 'This table is in use';
     $('cartError').replaceChildren(ok ? '' : el('p', { class: 'notice warn', style: 'margin-top:14px', text: tableMessage() }));
   }
 
   // ---------- table status: switched on? this phone part of it? ----------
   function tableMessage() {
     if (!seat.open) return 'Ordering isn\'t switched on for Table ' + table + ' right now. Please ask at the counter. You can look at the menu meanwhile.';
+    if (!seat.joined && seat.joinOpen && menu.onsite && menu.onsite.on) return 'Share your location to order from Table ' + table + '. It only checks you\'re inside the cafe.';
     if (!seat.joined) return 'Table ' + table + ' is already in use. If you\'re sitting here, please ask at the counter to let your phone join.';
     return '';
   }
@@ -162,13 +165,47 @@
     return api('/api/tables/' + table).then(function (s) {
       seat.open = s.open; seat.joined = s.joined; seat.joinOpen = s.joinOpen; seat.approved = s.approved;
       if (s.open && !s.joined && s.joinOpen) {
-        return api('/api/tables/' + table + '/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-          .then(function (j) { seat.joined = true; seat.approved = j.approved; }, function () { /* message below */ });
+        if (menu.onsite && menu.onsite.on) { if (!askedHere) { askedHere = true; show('Here'); } return; }
+        return join({});
       }
-    }).then(function () { banner(seat.open && seat.joined ? '' : 'warn', tableMessage()); return seat; });
+    }).then(function () {
+      var quiet = (seat.open && seat.joined) || !$('viewHere').hidden; // the location screen explains itself
+      banner(quiet ? '' : 'warn', quiet ? '' : tableMessage());
+      return seat;
+    });
   }
+  function join(body) {
+    return api('/api/tables/' + table + '/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (j) { seat.joined = true; seat.approved = j.approved; });
+  }
+
+  // ---------- "are you at the cafe?" (table ordering location check) ----------
+  function hereMsg(kind, text) { $('hereMsg').replaceChildren(text ? el('p', { class: 'notice ' + kind, role: kind === 'error' ? 'alert' : null, text: text }) : ''); }
+  function shareLocation() {
+    var btn = $('hereBtn');
+    if (!window.isSecureContext || !navigator.geolocation) return hereMsg('error', 'This browser can\'t share your location. Please ask at the counter to order.');
+    btn.disabled = true; btn.textContent = 'Checking…'; hereMsg('', '');
+    navigator.geolocation.getCurrentPosition(function (p) {
+      join({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }).then(function () {
+        var m = Math.round(distanceKm(menu.delivery.cafe, { lat: p.coords.latitude, lng: p.coords.longitude }) * 1000);
+        $('hereOkText').textContent = 'You\'re at the cafe · Table ' + table;
+        $('hereOk').hidden = false; $('hereOk').title = 'About ' + m + ' m from our map pin';
+        banner('', ''); show('Menu'); refreshBar();
+      }, function (e) {
+        hereMsg(e.code === 'not-here' ? 'error' : 'warn', e.message);
+        if (e.code === 'table-locked' || e.code === 'table-closed') checkTable().then(function () { show('Menu'); });
+      }).then(function () { btn.disabled = false; btn.textContent = 'Try again'; });
+    }, function (err) {
+      btn.disabled = false; btn.textContent = 'Try again';
+      hereMsg('error', err.code === 1
+        ? 'Location is blocked for this page. Open your browser settings, allow location for this site, then tap Try again.'
+        : 'Couldn\'t find your location. Turn on location / GPS on your phone and tap Try again.');
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+  if (!ONLINE) $('hereBtn').addEventListener('click', shareLocation);
   function place() {
     if (ONLINE) return placeOnline();
+    if (needLocation()) return show('Here');
     var btn = $('placeBtn');
     btn.disabled = true; btn.textContent = 'Placing order…';
     $('cartError').replaceChildren();
@@ -186,6 +223,7 @@
       showOrder(order.id, order.token, order);
     }).catch(function (e) {
       if (e.code === 'table-closed' || e.code === 'table-locked' || e.code === 'not-joined') {
+        askedHere = false;
         return checkTable().then(placeLabel);
       }
       $('cartError').replaceChildren(el('p', { class: 'notice error', style: 'margin-top:14px', role: 'alert', text: e.message }));

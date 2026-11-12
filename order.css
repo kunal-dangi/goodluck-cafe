@@ -126,3 +126,18 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .review .btn { width: 100%; margin-top: 14px; min-height: 50px; border-radius: 12px; }
 .review-thanks { margin-top: 18px; }
 .review-thanks a { color: var(--red); font-weight: 600; }
+
+/* table ordering: "are you at the cafe?" */
+.here { padding-top: 36px; text-align: center; }
+.here-pin { width: 84px; height: 84px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 50%; background: #fbe4df; }
+.here-pin svg { width: 44px; height: 44px; fill: var(--red); stroke: #fff; stroke-width: 1.4; }
+.here h1 { font-size: 1.9rem; margin-bottom: 8px; }
+.here > p { color: var(--muted); max-width: 34ch; margin: 0 auto; }
+.here-btn { width: 100%; max-width: 320px; min-height: 54px; margin: 22px auto 12px; border-radius: 14px; font-size: 1.05rem; }
+.here #hereMsg { max-width: 360px; margin: 0 auto; text-align: left; }
+.here-steps { list-style: none; counter-reset: s; display: grid; gap: 8px; max-width: 280px; margin: 22px auto 18px; text-align: left; font-size: .92rem; color: var(--muted); }
+.here-steps li { counter-increment: s; display: flex; gap: 10px; align-items: center; }
+.here-steps li::before { content: counter(s); flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; font-size: .78rem; font-weight: 600; }
+.here-steps b { color: var(--ink); font-weight: 600; }
+.here-ok { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 6px 12px 6px 8px; border-radius: 999px; background: #e3f3e7; color: #126128; font-size: .88rem; font-weight: 600; }
+.here-ok svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }

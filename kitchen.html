@@ -79,7 +79,7 @@
     .tp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
     .tp-head h2 { font-size: 1.4rem; }
     .tp-head p { color: var(--muted); font-size: .88rem; }
-    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(148px, 100%), 1fr)); gap: 10px; }
     .tile { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fff; display: grid; gap: 6px; align-content: start; }
     .tile.open { border-color: var(--ok); background: #f1f8f1; }
     .tile-top { display: flex; align-items: baseline; justify-content: space-between; }
@@ -94,7 +94,7 @@
     .approvals { margin: 18px 20px 0; padding: 16px; border-radius: 14px; background: #fff1d6; border: 1.5px solid #e9c77d; }
     .approvals h2 { font-size: 1.4rem; color: #5a3a00; }
     .approvals > p { color: #6b4a10; font-size: .9rem; margin: 2px 0 12px; }
-    .approve-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+    .approve-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; align-items: start; }
     .approve { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.06); display: grid; gap: 8px; }
     .approve.fresh { animation: arrive 1.6s cubic-bezier(.16,1,.3,1); }
     .ap-head { display: flex; justify-content: space-between; align-items: baseline; }
@@ -105,6 +105,8 @@
     .ap-actions .ok { background: var(--ok); border-color: var(--ok); }
     .ap-actions .ok:hover { background: #156b2c; border-color: #156b2c; }
     .ap-hint { font-size: .88rem; font-weight: 600; color: #5a3a00; }
+    .ap-loc { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 3px 10px; border-radius: 999px; background: #e3f3e7; color: #126128; font-size: .82rem; font-weight: 600; }
+    .ap-loc::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #1d8a3a; }
     .t-table.online { color: var(--red); }
     .contact { display: grid; gap: 2px; margin: 2px 0 10px; padding: 10px 12px; border-radius: 10px; background: #f3ede3; font-size: .92rem; }
     .contact a { color: var(--red); font-weight: 600; }
@@ -176,6 +178,6 @@
 </details>
 </div>
 
-<script src="kitchen.js?v=11"></script>
+<script src="kitchen.js?v=13"></script>
 </body>
 </html>

@@ -11,6 +11,7 @@
 //   STAFF_PORT      8081                staff door (always this computer only)
 //   PUBLIC_HOST     127.0.0.1           customer door listens here; the tunnel connects to it locally.
 //                                       Use 0.0.0.0 only for testing with phones on the same network.
+//   TABLE_GPS       on                  table phones must share a location within 150 m of the cafe ("off" to disable)
 //   PUBLIC_URL      ""                  the customers' address, e.g. https://order.goodluckcafe.in (used on QR cards)
 //   Online orders (delivery / pickup, pay on delivery): within DELIVERY_KM of the cafe, fee by distance (see DELIVERY below).
 //   TABLES          12                  number of tables
@@ -41,6 +42,13 @@ const DELIVERY = {
   maxKm: 10,
   fees: [[3, 0], [6, 20], [10, 40]], // up to 3 km free, up to 6 km ₹20, up to 10 km ₹40
   maxAccuracyM: 1500,                 // phone location must be at least this precise
+};
+// Table ordering: a phone joins a table only if its location says it's at the cafe.
+// TABLE_GPS=off turns the check off (e.g. for a demo away from the cafe).
+const ONSITE = {
+  on: process.env.TABLE_GPS !== 'off',
+  radiusM: 150,        // counts as "at the cafe" within this distance of the cafe's map pin
+  maxAccuracyM: 500,   // indoors GPS is rough; anything vaguer than this is asked to try again
 };
 // The customer door only sees the tunnel (it listens on this computer only), so it can trust the
 // visitor address and https flag the tunnel adds. With PUBLIC_HOST=0.0.0.0 (testing) it can't.
@@ -125,9 +133,10 @@ if (cols('seats').length && !cols('seats').includes('approved')) db.exec('DROP T
 db.exec(`CREATE TABLE IF NOT EXISTS seats (
   id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL UNIQUE, session_id INTEGER NOT NULL,
   approved INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`);
+if (!cols('seats').includes('distance_m')) db.exec('ALTER TABLE seats ADD COLUMN distance_m INTEGER'); // how far from the cafe the phone was when it joined
 const q = {
-  insertOrder: db.prepare(`INSERT INTO orders (token, table_no, items, note, name, total, status, created_at, updated_at, session_id, seat_id)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
+  insertOrder: db.prepare(`INSERT INTO orders (token, table_no, items, note, name, total, status, created_at, updated_at, session_id, seat_id, distance_m)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
   order: db.prepare('SELECT * FROM orders WHERE id = ?'),
   active: db.prepare(`SELECT * FROM orders WHERE status IN ('pending','new','preparing','ready') ORDER BY id`),
   servedSince: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount FROM orders WHERE status = 'served' AND created_at >= ?`),
@@ -143,7 +152,7 @@ const q = {
   session: db.prepare('SELECT * FROM table_sessions WHERE id = ?'),
   closeSession: db.prepare('UPDATE table_sessions SET closed_at = ? WHERE id = ?'),
   setJoinUntil: db.prepare('UPDATE table_sessions SET join_until = ? WHERE id = ?'),
-  addSeat: db.prepare('INSERT INTO seats (token_hash, session_id, created_at) VALUES (?, ?, ?)'),
+  addSeat: db.prepare('INSERT INTO seats (token_hash, session_id, created_at, distance_m) VALUES (?, ?, ?, ?)'),
   seat: db.prepare('SELECT * FROM seats WHERE token_hash = ?'),
   seatById: db.prepare('SELECT * FROM seats WHERE id = ?'),
   approveSeat: db.prepare('UPDATE seats SET approved = 1 WHERE id = ?'),
@@ -168,7 +177,7 @@ const q = {
 const now = () => new Date().toISOString();
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const newToken = () => crypto.randomBytes(24).toString('base64url');
-const orderOut = (r) => r && { id: r.id, kind: r.kind || 'table', table: r.table_no, items: JSON.parse(r.items), note: r.note, name: r.name,
+const orderOut = (r) => r && { id: r.id, kind: r.kind || 'table', table: r.table_no, distanceM: r.distance_m, items: JSON.parse(r.items), note: r.note, name: r.name,
   phone: r.phone || '', address: r.address || '', lat: r.lat, lng: r.lng, distanceKm: r.distance_m == null ? null : Math.round(r.distance_m / 100) / 10,
   fee: r.fee || 0, total: r.total, status: r.status, createdAt: r.created_at, updatedAt: r.updated_at };
 
@@ -362,7 +371,8 @@ async function api(req, res, url) {
     const ratings = {};
     for (const r of q.ratings.all()) ratings[r.item_id] = { avg: Math.round(r.avg * 10) / 10, count: r.n };
     return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL, ratings,
-      delivery: { cafe: DELIVERY.cafe, maxKm: DELIVERY.maxKm, fees: DELIVERY.fees, maxAccuracyM: DELIVERY.maxAccuracyM } });
+      delivery: { cafe: DELIVERY.cafe, maxKm: DELIVERY.maxKm, fees: DELIVERY.fees, maxAccuracyM: DELIVERY.maxAccuracyM },
+      onsite: { on: ONSITE.on, radiusM: ONSITE.radiusM, maxAccuracyM: ONSITE.maxAccuracyM } });
   }
 
   // Table status for the customer page.
@@ -381,8 +391,26 @@ async function api(req, res, url) {
       if (joined) return send(res, 200, { table, joined: true, approved: !!mine.seat.approved });
       if (limited(`join:${ip}`, 20, 600e3)) return fail(res, 429, 'slow-down', 'Too many tries. Please ask at the counter.');
       if (!joinOpen(s)) return fail(res, 409, 'table-locked', 'This table is already in use. If you\'re sitting here, please ask at the counter.');
+      // Location check: the phone must be at the cafe (stops orders from a photo of the QR code taken home).
+      let dist = null;
+      if (ONSITE.on) {
+        const { lat, lng, accuracy } = await readJson(req, 1024);
+        const la = Number(lat), lo = Number(lng), acc = Number(accuracy);
+        if (!Number.isFinite(la) || !Number.isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) {
+          return fail(res, 400, 'location', 'Please share your location so we can check you\'re at the cafe.');
+        }
+        if (!Number.isFinite(acc) || acc <= 0 || acc > ONSITE.maxAccuracyM) {
+          return fail(res, 400, 'accuracy', 'Your location isn\'t precise enough yet. Turn on GPS / precise location and try again.');
+        }
+        dist = distanceM(DELIVERY.cafe, { lat: la, lng: lo });
+        // Allow for GPS error: the phone counts as here if the cafe is inside its accuracy circle plus the radius.
+        if (dist - Math.min(acc, ONSITE.radiusM) > ONSITE.radiusM) {
+          const away = dist >= 1000 ? (dist / 1000).toFixed(1) + ' km' : Math.round(dist) + ' m';
+          return fail(res, 403, 'not-here', `You seem to be ${away} from the cafe. Table ordering only works inside the cafe. To order from elsewhere, use "Order online".`);
+        }
+      }
       const tok = newToken();
-      q.addSeat.run(sha(tok), s.id, now());
+      q.addSeat.run(sha(tok), s.id, now(), dist == null ? null : Math.round(dist));
       broadcast('table', tableView(table));
       const maxAge = Math.max(60, Math.round((new Date(s.expires_at) - Date.now()) / 1000));
       return send(res, 200, { table, joined: true, approved: false }, { 'Set-Cookie': cookie(req, 'glc_seat', tok, maxAge) });
@@ -414,7 +442,7 @@ async function api(req, res, url) {
     const { lines, total } = priced;
     const status = mine.seat.approved ? 'new' : 'pending';
     const t = now(), token = crypto.randomBytes(12).toString('hex');
-    const { lastInsertRowid } = q.insertOrder.run(token, table, JSON.stringify(lines), clean(body.note, 200), clean(body.name, 40), total, status, t, t, s.id, mine.seat.id);
+    const { lastInsertRowid } = q.insertOrder.run(token, table, JSON.stringify(lines), clean(body.note, 200), clean(body.name, 40), total, status, t, t, s.id, mine.seat.id, mine.seat.distance_m);
     for (const [k] of keys) countFail(k, 600e3); // count this order against the limits
     const order = orderOut(q.order.get(lastInsertRowid));
     broadcast('order', order);
@@ -694,6 +722,7 @@ publicServer.on('error', onListenError('customer door', PORT)).listen(PORT, PUBL
 // Staff door: hard-wired to this computer. Not configurable on purpose.
 http.createServer(handler('staff')).on('error', onListenError('staff door', STAFF_PORT)).listen(STAFF_PORT, '127.0.0.1', () => {
   console.log(`  Staff door:     http://localhost:${STAFF_PORT}   (receptionist + kitchen screen, QR cards: /tables.html; this computer only)`);
+  console.log(ONSITE.on ? `  Table GPS check ON: phones must be within ${ONSITE.radiusM} m of the cafe to join a table` : '  Table GPS check OFF (TABLE_GPS=off)');
   console.log(`  Privacy: customer phone numbers, addresses and locations are erased after ${PRIVACY_DAYS} days.`);
 });
 housekeeping();

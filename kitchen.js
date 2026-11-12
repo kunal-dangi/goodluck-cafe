@@ -144,6 +144,7 @@
     return el('article', { class: 'approve' + (online ? ' online' : '') + (fresh ? ' fresh' : '') },
       el('div', { class: 'ap-head' }, el('span', { class: 't-table', text: where(o) }), el('span', { class: 't-meta', 'data-ago': o.createdAt, text: ago(o.createdAt) })),
       online ? el('p', { class: 'ap-hint', text: 'Call ' + prettyPhone(o.phone) + ' to confirm before cooking.' }) : null,
+      !online && o.distanceM != null ? el('p', { class: 'ap-loc', text: 'Location checked · ' + (o.distanceM < 1000 ? o.distanceM + ' m' : (o.distanceM / 1000).toFixed(1) + ' km') + ' from the cafe' }) : null,
       el('div', { class: 'ap-items', text: o.items.map(function (l) { return l.qty + '× ' + l.name; }).join(', ') }),
       o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
       contact(o),
