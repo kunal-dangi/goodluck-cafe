@@ -125,6 +125,9 @@ nav a:hover { color: var(--red); }
 .menu-section { background: var(--red); padding: 72px 0 88px; }
 .section-head { text-align: center; color: #fff; margin-bottom: 28px; }
 .section-head h2 { font-size: clamp(2.6rem, 5vw, 3.6rem); margin-bottom: 14px; }
+.menu-order { margin: 4px 0 16px; }
+.btn-cream { background: #fff8ec; border-color: #fff8ec; color: var(--red); }
+.btn-cream:hover { background: #fff; border-color: #fff; color: var(--red-dark); }
 .legend { font-size: .88rem; opacity: .9; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .legend .mark { margin-left: 10px; background-color: #fff; }
 .legend .sep { margin: 0 8px; }
