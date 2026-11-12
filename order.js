@@ -499,19 +499,22 @@
     var id = current.id, token = current.token;
     poll = setInterval(function () {
       api('/api/orders/' + id + '?t=' + encodeURIComponent(token)).then(function (o) {
+        if (!current || current.id !== id) return; // another order is on screen now
         if (renderOrder(o) && poll) { clearInterval(poll); poll = null; }
       }).catch(function () {});
     }, 5000);
   }
   function showOrder(id, token, known) {
+    if (poll) { clearInterval(poll); poll = null; } // stop refreshing the order shown before
     current = { id: id, token: token };
     show('Done');
     renderPast(id);
     var finished = known ? renderOrder(known) : false;
     var tick = function () {
       api('/api/orders/' + id + '?t=' + encodeURIComponent(token)).then(function (o) {
+        if (!current || current.id !== id) return; // a late reply for an order no longer shown
         if (renderOrder(o) && poll) { clearInterval(poll); poll = null; }
-      }).catch(function (e) { $('statusLine').textContent = e.message; });
+      }).catch(function (e) { if (current && current.id === id) $('statusLine').textContent = e.message; });
     };
     if (!known) tick();
     if (!finished) poll = setInterval(tick, 5000);
