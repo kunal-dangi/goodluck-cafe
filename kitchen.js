@@ -51,6 +51,17 @@
   });
   $('logout').addEventListener('click', function () { call('POST', '/api/staff/logout').catch(function () {}).then(showLogin); });
 
+  // Confirm risky taps on the button itself: first tap arms it, a second tap within 4 s does it.
+  // (No confirm() pop-ups: many tablet / kiosk browsers block them and silently answer "Cancel".)
+  function twoTap(btn, armedText, action) {
+    if (btn.dataset.armed) { clearTimeout(Number(btn.dataset.armed)); action(); return; }
+    var original = btn.textContent;
+    btn.classList.add('armed'); btn.textContent = armedText;
+    btn.dataset.armed = setTimeout(function () {
+      delete btn.dataset.armed; btn.classList.remove('armed'); btn.textContent = original;
+    }, 4000);
+  }
+
   // ---------------- tables ----------------
   function tile(t) {
     if (!t.open) {
@@ -67,9 +78,8 @@
            : el('div', { class: 'tile-join', text: 'Locked to these phones' }),
       left ? null : el('button', { class: 'link', type: 'button', onclick: function () { tableAction(t.table, 'allow-join'); } }, 'Let more phones join'),
       el('div', { class: 'tile-actions' },
-        el('button', { class: 'btn btn-ink', type: 'button', onclick: function () {
-          var msg = 'Turn off table ' + t.table + '?\n\n' + (t.orders ? 'Bill: ' + rupees(t.bill) + ' for ' + t.orders + (t.orders === 1 ? ' order' : ' orders') + '.\n' : '') + 'Phones at this table will no longer be able to order.';
-          if (confirm(msg)) tableAction(t.table, 'close');
+        el('button', { class: 'btn btn-ink', type: 'button', 'aria-label': 'Turn off table ' + t.table, onclick: function (e) {
+          twoTap(e.currentTarget, t.orders ? 'Tap again · bill ' + rupees(t.bill) : 'Tap again to turn off', function () { tableAction(t.table, 'close'); });
         } }, 'Turn off')));
   }
   function renderTables() {
@@ -110,8 +120,8 @@
       return el('button', { class: 'btn go', type: 'button', onclick: function () { move(o, a[0]); } }, label);
     });
     if (o.status === 'new' || o.status === 'preparing') {
-      acts.push(el('button', { class: 'btn cancel', type: 'button', onclick: function () {
-        if (confirm('Cancel order #' + o.id + ' (' + whereLong(o) + ')? The customer will see it was cancelled.')) move(o, 'cancelled');
+      acts.push(el('button', { class: 'btn cancel', type: 'button', 'aria-label': 'Cancel order ' + o.id + ', ' + whereLong(o), onclick: function (e) {
+        twoTap(e.currentTarget, 'Tap again', function () { move(o, 'cancelled'); });
       } }, 'Cancel'));
     }
     var mins = minutesAgo(o.createdAt);
@@ -140,10 +150,8 @@
       el('div', { class: 't-foot' }, el('span', { class: 'who', text: online ? '' : o.name ? 'For ' + o.name : 'New phone' }), el('b', { class: 'money', text: rupees(o.total) })),
       el('div', { class: 'ap-actions' },
         el('button', { class: 'btn ok', type: 'button', onclick: function () { decide(o, 'approve'); } }, online ? 'Confirmed on call' : 'Approve'),
-        el('button', { class: 'btn cancel', type: 'button', onclick: function () {
-          var q = online ? 'Reject this ' + o.kind + ' order from ' + o.name + '? They\'ll see it was cancelled.'
-            : 'Reject this order for table ' + o.table + '? The phone will be removed from the table.';
-          if (confirm(q)) decide(o, 'reject');
+        el('button', { class: 'btn cancel', type: 'button', 'aria-label': 'Reject order ' + o.id + ', ' + whereLong(o), onclick: function (e) {
+          twoTap(e.currentTarget, 'Tap again', function () { decide(o, 'reject'); });
         } }, 'Reject')));
   }
   function decide(o, what) {

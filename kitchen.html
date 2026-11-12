@@ -53,6 +53,9 @@
     .ticket[data-status="ready"] .go { background: var(--ok); border-color: var(--ok); }
 
     .err { margin: 18px 20px 0; }
+    /* first tap on a risky button arms it; the second tap does it */
+    .btn.armed, .t-actions .cancel.armed, .ap-actions .cancel.armed { background: var(--red); border-color: var(--red); color: #fff; }
+    .btn.armed:hover, .t-actions .cancel.armed:hover, .ap-actions .cancel.armed:hover { background: var(--red-dark); border-color: var(--red-dark); color: #fff; }
     .logout { min-height: 38px; padding: 0 12px; border: 0; background: none; color: #d4c8b5; text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
 
     /* login */
@@ -158,6 +161,6 @@
 </main>
 </div>
 
-<script src="kitchen.js?v=7"></script>
+<script src="kitchen.js?v=8"></script>
 </body>
 </html>
