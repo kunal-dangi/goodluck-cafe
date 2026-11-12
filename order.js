@@ -395,6 +395,9 @@
         if ($('payQr').dataset.link !== upiLink(o)) { $('payQr').dataset.link = upiLink(o); $('payQr').replaceChildren(); $('payQrBox').open = false; }
         if (lastClaim[o.id]) $('payMsg').replaceChildren(el('p', { class: 'notice warn', text: 'The cafe couldn\'t find your payment yet. If money left your account, show the receipt at the counter; otherwise try again or pay at the counter.' }));
         else $('payMsg').replaceChildren();
+      } else if (u && o.status === 'pending') {
+        state.hidden = false;
+        state.textContent = (!o.kind || o.kind === 'table' ? 'Once the cafe accepts your order' : 'Once we confirm your order on the phone') + ', a "Pay with UPI" button appears here.';
       }
     }
     lastClaim[o.id] = !!o.payClaimedAt && !o.paidAt;
