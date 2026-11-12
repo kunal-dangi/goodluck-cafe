@@ -91,6 +91,8 @@ nav a:hover { color: var(--red); }
   -webkit-mask: radial-gradient(var(--tooth) at 50% 100%, transparent 96%, #000) 0 100% / calc(var(--tooth) * 2) var(--tooth) repeat-x, linear-gradient(#000, #000) 0 0 / 100% calc(100% - var(--tooth)) no-repeat;
           mask: radial-gradient(var(--tooth) at 50% 100%, transparent 96%, #000) 0 100% / calc(var(--tooth) * 2) var(--tooth) repeat-x, linear-gradient(#000, #000) 0 0 / 100% calc(100% - var(--tooth)) no-repeat;
 }
+@keyframes bill-in { from { opacity: 0; translate: 0 -36px; rotate: -5deg; } }
+.bill { animation: bill-in .9s cubic-bezier(.16, 1, .3, 1) .3s backwards; }
 .bill-head { font-family: "Rozha One", Georgia, serif; font-size: 1.45rem; color: var(--red); text-align: center; line-height: 1.1; }
 .bill-sub { text-align: center; font-size: .78rem; color: var(--muted); letter-spacing: .06em; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed #b9a98f; }
 .bill ul { list-style: none; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px dashed #b9a98f; }
@@ -284,7 +286,7 @@ footer a:hover { color: #fff; }
   .awning { height: 34px; background: repeating-linear-gradient(90deg, var(--red) 0 28px, #f6ecdb 28px 56px);
     -webkit-mask: radial-gradient(14px 11px at 14px 23px, #000 98%, transparent) 0 0 / 28px 34px repeat-x, linear-gradient(#000, #000) 0 0 / 100% 23px no-repeat;
             mask: radial-gradient(14px 11px at 14px 23px, #000 98%, transparent) 0 0 / 28px 34px repeat-x, linear-gradient(#000, #000) 0 0 / 100% 23px no-repeat; }
-  .hero-bg { left: 0; width: 100%; bottom: auto; height: 62vh; max-height: 520px; object-position: 55% 40%; }
+  .hero-bg { left: 0; width: 100%; bottom: auto; height: 62vh; max-height: 520px; object-position: 43% 40%; }
   .hero::after { background: linear-gradient(180deg, rgba(21,16,13,.15) 0, rgba(21,16,13,.35) 30vh, #15100d min(62vh, 520px)); }
   .hero-inner { grid-template-columns: 1fr; gap: 44px; min-height: 0; padding-top: 38vh; padding-bottom: 56px; }
   .bill { transform: rotate(-1.5deg); max-width: 340px; margin: 0 auto; width: 100%; }
@@ -323,6 +325,7 @@ footer a:hover { color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
   .cat summary::after { transition: none; }
+  .bill { animation: none; }
   html { scroll-behavior: auto; }
   .btn { transition: none; }
 }
