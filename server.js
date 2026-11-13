@@ -141,6 +141,8 @@ if (cols('seats').length && !cols('seats').includes('approved')) db.exec('DROP T
 db.exec(`CREATE TABLE IF NOT EXISTS seats (
   id INTEGER PRIMARY KEY AUTOINCREMENT, token_hash TEXT NOT NULL UNIQUE, session_id INTEGER NOT NULL,
   approved INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`);
+// Days the cafe stays shut (holidays, a day off), set from the staff screen. India dates, YYYY-MM-DD.
+db.exec('CREATE TABLE IF NOT EXISTS closed_days (day TEXT PRIMARY KEY, note TEXT NOT NULL DEFAULT \'\')');
 if (!cols('seats').includes('distance_m')) db.exec('ALTER TABLE seats ADD COLUMN distance_m INTEGER'); // how far from the cafe the phone was when it joined
 const q = {
   insertOrder: db.prepare(`INSERT INTO orders (token, table_no, items, note, name, total, status, created_at, updated_at, session_id, seat_id, distance_m)
@@ -161,6 +163,9 @@ const q = {
   payChecks: db.prepare(`SELECT * FROM orders WHERE pay_claimed_at IS NOT NULL AND paid_at IS NULL AND status != 'cancelled' ORDER BY pay_claimed_at`),
   claimPaid: db.prepare('UPDATE orders SET pay_claimed_at = ? WHERE id = ?'),
   markPaid: db.prepare('UPDATE orders SET paid_at = ?, paid_method = ? WHERE id = ?'),
+  closedFrom: db.prepare('SELECT day, note FROM closed_days WHERE day >= ? ORDER BY day LIMIT 60'),
+  addClosed: db.prepare('INSERT INTO closed_days (day, note) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET note = excluded.note'),
+  removeClosed: db.prepare('DELETE FROM closed_days WHERE day = ?'),
   unpaidOfSession: db.prepare(`SELECT id FROM orders WHERE session_id = ? AND paid_at IS NULL AND status NOT IN ('cancelled','pending')`),
   openSession: db.prepare(`SELECT * FROM table_sessions WHERE table_no = ? AND closed_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1`),
   allOpen: db.prepare(`SELECT * FROM table_sessions WHERE closed_at IS NULL AND expires_at > ?`),
@@ -306,12 +311,35 @@ function indiaNow() {
     .formatToParts(new Date()).map((x) => [x.type, x.value]));
   return { date: `${p.year}-${p.month}-${p.day}`, minutes: (Number(p.hour) % 24) * 60 + Number(p.minute) };
 }
-function isOpen() {
-  if (ORDER_HOURS === 'always') return true;
-  const [a, b] = ORDER_HOURS.split('-').map((t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; });
-  const m = indiaNow().minutes;
-  return a <= b ? m >= a && m < b : m >= a || m < b;
+// Open, or why not: before opening time, after closing time, or a closed day. Messages are written here once
+// and shown on every customer page.
+const HOURS = ORDER_HOURS === 'always' ? null : ORDER_HOURS.split('-').map((t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; });
+const clock = (mins) => { const h = Math.floor(mins / 60) % 24, m = mins % 60; return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
+const addDays = (day, n) => new Date(Date.parse(day + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+const dayName = (day) => new Date(day + 'T00:00:00Z').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' });
+function openStatus() {
+  const { date, minutes } = indiaNow();
+  const shut = new Map(q.closedFrom.all(date).map((r) => [r.day, r.note]));
+  const opensAt = clock(HOURS ? HOURS[0] : 6 * 60);
+  const nextOpen = (from) => { let d = addDays(from, 1); for (let i = 0; i < 60 && shut.has(d); i++) d = addDays(d, 1); return d; };
+  const when = (d) => (d === addDays(date, 1) ? 'tomorrow' : 'on ' + dayName(d));
+  if (shut.has(date)) {
+    const note = shut.get(date);
+    return { open: false, state: 'holiday', title: 'Closed today',
+      message: `The cafe is closed today${note ? ` for ${note}` : ''}. We'll be back ${when(nextOpen(date))} from ${opensAt}. See you then!` };
+  }
+  if (!HOURS) return { open: true, state: 'open' };
+  const [a, b] = HOURS;
+  const inHours = a <= b ? minutes >= a && minutes < b : minutes >= a || minutes < b;
+  if (inHours) return { open: true, state: 'open', closesAt: clock(b) };
+  if (a <= b && minutes < a) {
+    return { open: false, state: 'before', title: 'Opening soon',
+      message: `${minutes < 12 * 60 ? 'Good morning! ' : ''}We open at ${opensAt}. Have a look at the menu, and order from ${opensAt}.` };
+  }
+  return { open: false, state: 'after', title: 'Closed for today',
+    message: `Our kitchen closed at ${clock(b)}. We open again ${when(nextOpen(date))} at ${opensAt}.${minutes >= 20 * 60 || minutes < 4 * 60 ? ' Good night!' : ''}` };
 }
+const isOpen = () => openStatus().open;
 // Prices come from menu.json only. Returns { lines, total } or { error, message }.
 function priceItems(list) {
   if (!Array.isArray(list) || list.length === 0) return { error: 'empty', message: 'Your order is empty.' };
@@ -386,7 +414,7 @@ async function api(req, res, url) {
     // Real averages only: a dish nobody has rated yet is 0.0 from 0 ratings.
     const ratings = {};
     for (const r of q.ratings.all()) ratings[r.item_id] = { avg: Math.round(r.avg * 10) / 10, count: r.n };
-    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL, ratings,
+    return send(res, 200, { ...menu, tables: TABLES, open: isOpen(), status: openStatus(), hours: ORDER_HOURS, publicUrl: PUBLIC_URL, ratings,
       delivery: { cafe: DELIVERY.cafe, maxKm: DELIVERY.maxKm, fees: DELIVERY.fees, maxAccuracyM: DELIVERY.maxAccuracyM },
       onsite: { on: ONSITE.on, radiusM: ONSITE.radiusM, maxAccuracyM: ONSITE.maxAccuracyM },
       upi: UPI.id ? { id: UPI.id, name: UPI.name } : null });
@@ -435,7 +463,7 @@ async function api(req, res, url) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/orders') {
-    if (!isOpen()) return fail(res, 409, 'closed', 'The kitchen is closed right now. Orders open again at 6:00 am.');
+    { const st = openStatus(); if (!st.open) return fail(res, 409, 'closed', st.message); }
     const body = await readJson(req);
     const table = Number(body.table);
     if (!Number.isInteger(table) || table < 1 || table > TABLES) return fail(res, 400, 'table', 'Unknown table number.');
@@ -470,7 +498,7 @@ async function api(req, res, url) {
   // Online order: delivery (within DELIVERY.maxKm, by the phone's location) or pickup. Pay on delivery / at pickup.
   // Every online order waits for the receptionist to call the customer and confirm it.
   if (req.method === 'POST' && url.pathname === '/api/online-orders') {
-    if (!isOpen()) return fail(res, 409, 'closed', 'The kitchen is closed right now. Orders open again at 6:00 am.');
+    { const st = openStatus(); if (!st.open) return fail(res, 409, 'closed', st.message); }
     const body = await readJson(req);
     const kind = body.kind === 'delivery' || body.kind === 'pickup' ? body.kind : null;
     if (!kind) return fail(res, 400, 'kind', 'Choose delivery or pickup.');
@@ -600,7 +628,20 @@ async function api(req, res, url) {
       const done = q.servedSince.get(startOfIndiaDay());
       return send(res, 200, { orders: q.active.all().map(orderOut), payChecks: q.payChecks.all().map(orderOut), upi: !!UPI.id,
         cancelled: q.recentCancelled.all(new Date(Date.now() - 30 * 60e3).toISOString()).map(orderOut),
-        servedToday: done.n, takingsToday: done.amount, open: isOpen() });
+        servedToday: done.n, takingsToday: done.amount, open: isOpen(), status: openStatus() });
+    }
+    // Closed days: list upcoming ones, add one (a date, optional reason), or remove one.
+    if (p[2] === 'closed-days') {
+      const today = indiaNow().date;
+      if (req.method === 'POST') {
+        const { day, note, remove } = await readJson(req, 512);
+        if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(day)) || day < today || day > addDays(today, 366))
+          return fail(res, 400, 'day', 'Pick today or a date in the next year.');
+        if (remove) { q.removeClosed.run(day); staffLog('Open again', dayName(day)); }
+        else { const n = clean(note, 60); q.addClosed.run(day, n); staffLog('Closed day', dayName(day) + (n ? ` · ${n}` : '')); }
+        broadcast('status', openStatus());
+      } else if (req.method !== 'GET') return fail(res, 404, 'not-found', 'Not found.');
+      return send(res, 200, { today, days: q.closedFrom.all(today).map((r) => ({ ...r, label: dayName(r.day) })), status: openStatus() });
     }
     // Approve / reject a new phone's first order. Approving trusts the phone for the rest of the visit;
     // rejecting cancels its waiting orders and removes the phone from the table.

@@ -261,8 +261,41 @@
       servedToday = r[0].servedToday; takings = r[0].takingsToday;
       tables = new Map(r[1].tables.map(function (t) { return [t.table, t]; }));
       renderOrders(null); renderTables();
+      if (!BOARD) loadDays();
     });
   }
+
+  // ---------------- closed days (holidays) ----------------
+  var days = null;
+  function renderDays() {
+    if (!days) return;
+    var st = days.status, today = days.days.find(function (d) { return d.day === days.today; });
+    $('dayState').textContent = st.open ? 'Open now. Customers can order.' : st.title + ': ' + st.message;
+    $('dayState').classList.toggle('closed', !st.open);
+    var btn = $('closeToday');
+    btn.textContent = today ? 'Open today again' : 'Close today';
+    btn.onclick = function (e) {
+      if (today) return setDay(days.today, '', true);
+      twoTap(e.currentTarget, 'Tap again · no orders today', function () { setDay(days.today, $('dayNote').value, false); });
+    };
+    $('dayDate').min = days.today;
+    $('dayList').replaceChildren(...days.days.filter(function (d) { return d.day !== days.today; }).map(function (d) {
+      return el('li', {}, el('span', { text: 'Closed ' + d.label + (d.note ? ' · ' + d.note : '') }),
+        el('button', { type: 'button', 'aria-label': 'Open on ' + d.label + ' after all', onclick: function () { setDay(d.day, '', true); } }, 'Undo'));
+    }));
+  }
+  function loadDays() { return call('GET', '/api/kitchen/closed-days').then(function (d) { days = d; renderDays(); }).catch(function (e) { error(e.message); }); }
+  function setDay(day, note, remove) {
+    error('');
+    call('POST', '/api/kitchen/closed-days', { day: day, note: note, remove: remove }).then(function (d) {
+      days = d; renderDays(); $('dayNote').value = ''; loadActivity();
+    }).catch(function (e) { error(e.message); });
+  }
+  setInterval(function () { if (!BOARD && days) loadDays(); }, 60000); // opening/closing time passes
+  $('dayForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    setDay($('dayDate').value, $('dayNote').value, false); $('dayDate').value = '';
+  });
 
   // ---------------- activity log ----------------
   function loadActivity() {
@@ -303,6 +336,7 @@
       load().then(function () { firstLoad = false; error(''); }).catch(function (e) { error(e.message); });
     });
     stream.addEventListener('order', function (e) { upsert(JSON.parse(e.data)); loadActivity(); });
+    stream.addEventListener('status', function () { if (!BOARD) loadDays(); });
     stream.addEventListener('table', function (e) { var t = JSON.parse(e.data); tables.set(t.table, t); renderTables(); loadActivity(); });
     stream.addEventListener('error', function () {
       $('live').textContent = 'Reconnecting…'; $('live').classList.remove('on');

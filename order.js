@@ -42,6 +42,15 @@
     window.scrollTo(0, 0);
     if (name !== 'Done' && poll) { clearInterval(poll); poll = null; }
   }
+  // Opening soon / closed for today / closed day: a card at the top. The menu stays open to browse.
+  function showStatus(st) {
+    var card = $('statusCard');
+    card.hidden = !st || st.open;
+    if (card.hidden) return;
+    card.dataset.state = st.state;
+    $('statusTitle').textContent = st.title;
+    $('statusText').textContent = st.message;
+  }
   function banner(kind, text) {
     $('banner').replaceChildren(text ? el('p', { class: 'notice ' + kind, style: 'margin-top:14px', text: text }) : '');
   }
@@ -648,7 +657,8 @@
   api('/api/menu').then(function (m) {
     menu = m;
     m.categories.forEach(function (c) { c.items.forEach(function (i) { items[i.id] = i; }); });
-    if (!m.open) banner('warn', 'The kitchen is closed right now. You can look at the menu; ordering opens at 6:00 am.');
+    showStatus(m.status);
+    setInterval(function () { api('/api/menu').then(function (x) { menu.open = x.open; showStatus(x.status); }).catch(function () {}); }, 60000);
     if (ONLINE) return startOnline();
     var n = Number(new URLSearchParams(location.search).get('table'));
     if (Number.isInteger(n) && n >= 1 && n <= m.tables) return startTable(n);

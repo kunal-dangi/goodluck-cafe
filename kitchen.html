@@ -63,6 +63,15 @@
     .cancels .cx-what b { font-weight: 600; }
     .cancels .cx-meta { color: var(--muted); font-size: .85rem; }
     .cancels .btn { min-height: 38px; padding: 0 16px; font-size: .9rem; }
+    .days-panel { margin-top: 12px; }
+    .days-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 10px; }
+    .day-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+    .day-form label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+    .day-form input { font: inherit; padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+    .day-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+    .day-list li { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: .9rem; }
+    .day-list button { border: 0; background: none; color: var(--red); font: inherit; font-weight: 600; cursor: pointer; padding: 4px 8px; }
+    #dayState.closed { color: var(--red); font-weight: 600; }
     .activity { margin: 0 20px 40px; padding: 14px 16px; background: var(--paper); border-radius: 14px; }
     .activity summary { cursor: pointer; font-weight: 600; }
     .activity summary small { color: var(--muted); font-weight: 400; }
@@ -137,7 +146,7 @@
     .tile .ghost:hover { color: var(--red); border-color: var(--red); background: transparent; }
     @media (max-width: 900px) { .board { grid-template-columns: 1fr; } }
     /* ?view=board: only the order board, for a screen in the kitchen */
-    .board-only .approvals, .board-only .tables-panel, .board-only .activity, .board-only #boardLink { display: none !important; }
+    .board-only .approvals, .board-only .tables-panel, .board-only .days-panel, .board-only .activity, .board-only #boardLink { display: none !important; }
     .board-only .board { padding-top: 22px; }
   </style>
 </head>
@@ -186,6 +195,22 @@
   <div class="tiles" id="tiles"></div>
 </section>
 
+<section class="tables-panel days-panel" aria-labelledby="daysTitle">
+  <div class="tp-head">
+    <h2 id="daysTitle">Cafe open?</h2>
+    <p id="dayState"></p>
+  </div>
+  <div class="days-row">
+    <button class="btn btn-ink" id="closeToday" type="button">Close today</button>
+    <form class="day-form" id="dayForm">
+      <label>Close another day <input type="date" id="dayDate" required></label>
+      <input id="dayNote" maxlength="60" placeholder="Reason (optional), e.g. Diwali" aria-label="Reason (optional)">
+      <button class="btn btn-quiet" type="submit">Add</button>
+    </form>
+  </div>
+  <ul class="day-list" id="dayList"></ul>
+</section>
+
 <main class="board">
   <section class="col" data-col="new"><h2>New <span class="n" id="n-new"></span></h2><div class="stack" id="c-new"></div></section>
   <section class="col" data-col="preparing"><h2>Preparing <span class="n" id="n-preparing"></span></h2><div class="stack" id="c-preparing"></div></section>
@@ -198,6 +223,6 @@
 </details>
 </div>
 
-<script src="kitchen.js?v=17"></script>
+<script src="kitchen.js?v=18"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-  <link rel="stylesheet" href="order.css?v=9">
+  <link rel="stylesheet" href="order.css?v=10">
 </head>
 <body>
 
@@ -29,6 +29,13 @@
 
 <main class="wrap">
   <div id="banner"></div>
+  <section class="status-card" id="statusCard" aria-live="polite" hidden>
+    <img src="images/logo.jpg" width="150" height="150" alt="">
+    <div>
+      <h2 id="statusTitle"></h2>
+      <p id="statusText"></p>
+    </div>
+  </section>
 
   <!-- 1. pick a table (only when the QR code didn't include one) -->
   <section id="viewPicker" class="picker" hidden>
@@ -156,6 +163,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=18"></script>
+<script src="order.js?v=19"></script>
 </body>
 </html>
