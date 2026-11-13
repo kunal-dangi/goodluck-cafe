@@ -56,6 +56,16 @@
         ],
         "createdAt": "2026-11-12T14:57:33.343Z",
         "reason": "Claude: back button beside the 'Your order' heading in a flex row, same as order.html"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          "order.html",
+          "online.html"
+        ],
+        "createdAt": "2026-11-14T02:10:00.000Z",
+        "reason": "Claude: the red/cream stripes are the cafe's real awning, the same motif as the website hero (.awning in style.css), drawn on the closed screen"
       }
     ]
   }

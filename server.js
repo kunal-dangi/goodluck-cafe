@@ -322,9 +322,11 @@ function openStatus() {
   const opensAt = clock(HOURS ? HOURS[0] : 6 * 60);
   const nextOpen = (from) => { let d = addDays(from, 1); for (let i = 0; i < 60 && shut.has(d); i++) d = addDays(d, 1); return d; };
   const when = (d) => (d === addDays(date, 1) ? 'tomorrow' : 'on ' + dayName(d));
+  const startMin = HOURS ? HOURS[0] : 6 * 60;
+  const at = (d) => new Date(Date.parse(`${d}T${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}:00+05:30`)).toISOString();
   if (shut.has(date)) {
     const note = shut.get(date);
-    return { open: false, state: 'holiday', title: 'Closed today',
+    return { open: false, state: 'holiday', title: 'Closed today', note, opensAt: at(nextOpen(date)),
       message: `The cafe is closed today${note ? ` for ${note}` : ''}. We'll be back ${when(nextOpen(date))} from ${opensAt}. See you then!` };
   }
   if (!HOURS) return { open: true, state: 'open' };
@@ -332,11 +334,12 @@ function openStatus() {
   const inHours = a <= b ? minutes >= a && minutes < b : minutes >= a || minutes < b;
   if (inHours) return { open: true, state: 'open', closesAt: clock(b) };
   if (a <= b && minutes < a) {
-    return { open: false, state: 'before', title: 'Opening soon',
-      message: `${minutes < 12 * 60 ? 'Good morning! ' : ''}We open at ${opensAt}. Have a look at the menu, and order from ${opensAt}.` };
+    return { open: false, state: 'before', title: 'Opening soon', opensAt: at(date),
+      message: `${minutes < 12 * 60 ? 'Good morning! ' : ''}We open at ${opensAt}, and you can order right here from then.` };
   }
-  return { open: false, state: 'after', title: 'Closed for today',
-    message: `Our kitchen closed at ${clock(b)}. We open again ${when(nextOpen(date))} at ${opensAt}.${minutes >= 20 * 60 || minutes < 4 * 60 ? ' Good night!' : ''}` };
+  const laterToday = minutes < a; // closed after midnight: opens again this morning
+  return { open: false, state: 'after', title: 'Closed for today', opensAt: laterToday ? at(date) : at(nextOpen(date)),
+    message: `Our kitchen closed at ${clock(b)}. We open again ${laterToday ? 'today' : when(nextOpen(date))} at ${opensAt}.${minutes >= 20 * 60 || minutes < 4 * 60 ? ' Good night!' : ''}` };
 }
 const isOpen = () => openStatus().open;
 // Prices come from menu.json only. Returns { lines, total } or { error, message }.

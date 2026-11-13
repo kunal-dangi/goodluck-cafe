@@ -12,9 +12,99 @@
   <link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css?v=2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-  <link rel="stylesheet" href="order.css?v=10">
+  <link rel="stylesheet" href="order.css?v=11">
 </head>
 <body data-mode="online">
+<section class="shut" id="closedScreen" aria-labelledby="shutTitle" hidden>
+  <div class="shut-awning" aria-hidden="true"></div>
+  <a class="brand shut-brand" href="index.html"><img src="images/logo.jpg" width="150" height="150" alt=""><span>Good Luck <b>Cafe</b></span></a>
+  <svg class="shut-scene" viewBox="0 0 320 250" role="img" aria-labelledby="shutSceneLabel">
+    <title id="shutSceneLabel">The cafe's shopfront</title>
+    <defs>
+      <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd58a"/><stop offset="1" stop-color="#f2a64a"/></linearGradient>
+      <pattern id="stripe" width="24" height="10" patternUnits="userSpaceOnUse"><rect width="12" height="10" fill="#b3191e"/><rect x="12" width="12" height="10" fill="#f6ecdb"/></pattern>
+      <pattern id="slats" width="10" height="9" patternUnits="userSpaceOnUse"><rect width="10" height="9" fill="#a99d90"/><rect y="7" width="10" height="2" fill="#8d8175"/></pattern>
+    </defs>
+    <!-- sky bits: moon + stars (night), sun (morning) -->
+    <g class="sc-night">
+      <path d="M262 26a14 14 0 1 0 13 19 11 11 0 1 1-13-19z" fill="#f6ecdb"/>
+      <circle class="tw tw1" cx="40" cy="18" r="1.8" fill="#f6ecdb"/>
+      <circle class="tw tw2" cx="92" cy="9" r="1.3" fill="#f6ecdb"/>
+      <circle class="tw tw3" cx="214" cy="14" r="1.6" fill="#f6ecdb"/>
+      <circle class="tw tw2" cx="300" cy="64" r="1.2" fill="#f6ecdb"/>
+    </g>
+    <g class="sc-morning"><circle cx="262" cy="22" r="20" fill="#f2a64a" opacity=".22"/><circle cx="262" cy="22" r="13" fill="#f2a64a"/></g>
+    <!-- building -->
+    <rect x="24" y="44" width="272" height="196" rx="3" fill="#efe3cc"/>
+    <rect x="44" y="52" width="232" height="30" rx="3" fill="#b3191e"/>
+    <text x="160" y="73" text-anchor="middle" font-family="Rozha One, Georgia, serif" font-size="17" fill="#f6ecdb" letter-spacing="1">GOOD LUCK CAFE</text>
+    <rect x="30" y="86" width="260" height="14" fill="url(#stripe)"/>
+    <path d="M30 100h260v4a6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-12 0 6 6 0 0 1-8 0z" fill="#b3191e"/>
+    <!-- shopfront: warm inside, kettle -->
+    <rect x="52" y="112" width="216" height="118" fill="url(#glow)"/>
+    <g class="sc-inside">
+      <path d="M110 112v14" stroke="#1f1a17" stroke-width="1.2"/>
+      <path d="M102 132a8 7 0 0 1 16 0z" fill="#1f1a17"/>
+      <circle cx="110" cy="134" r="3" fill="#fffaf1"/>
+      <circle cx="110" cy="138" r="16" fill="#fffaf1" opacity=".18"/>
+      <path d="M216 112v14" stroke="#1f1a17" stroke-width="1.2"/>
+      <path d="M208 132a8 7 0 0 1 16 0z" fill="#1f1a17"/>
+      <circle cx="216" cy="134" r="3" fill="#fffaf1"/>
+      <circle cx="216" cy="138" r="16" fill="#fffaf1" opacity=".18"/>
+      <path d="M86 194l1.5-12h9l1.5 12z" fill="#fffaf1" opacity=".85"/><path d="M87.3 186h9.4l.8 8h-11z" fill="#c9792f"/>
+      <path d="M102 194l1.5-12h9l1.5 12z" fill="#fffaf1" opacity=".85"/><path d="M103.3 186h9.4l.8 8h-11z" fill="#c9792f"/>
+      <rect x="52" y="196" width="216" height="34" fill="#8c1216"/>
+      <rect x="52" y="194" width="216" height="4" fill="#5e0c0f"/>
+      <path d="M134 194c0-14 9-22 26-22s26 8 26 22z" fill="#1f1a17"/>
+      <path d="M186 180l14-8 3 4-14 9z" fill="#1f1a17"/>
+      <path d="M150 172h20v-4a10 4 0 0 0-20 0z" fill="#1f1a17"/>
+      <g class="steam" fill="none" stroke="#fffaf1" stroke-width="2.4" stroke-linecap="round">
+        <path class="st st1" d="M201 168c-5-6 5-10 0-17"/>
+        <path class="st st2" d="M209 166c-5-6 5-10 0-17"/>
+        <path class="st st3" d="M193 166c-5-6 5-10 0-17"/>
+      </g>
+    </g>
+    <!-- rolling shutter -->
+    <g class="shutter">
+      <rect class="slats" x="52" y="112" width="216" height="118" fill="url(#slats)"/>
+      <rect class="bar" x="50" y="226" width="220" height="6" rx="2" fill="#6b5f55"/>
+    </g>
+    <g class="sc-lock">
+      <path d="M154 210v-6a6 6 0 0 1 12 0v6" fill="none" stroke="#3a322c" stroke-width="2.5"/>
+      <rect x="150" y="209" width="20" height="15" rx="3" fill="#3a322c"/>
+    </g>
+    <!-- bunting (closed day) -->
+    <g class="sc-holiday">
+      <path d="M36 112 Q160 132 284 112" fill="none" stroke="#6b5f55" stroke-width="1"/>
+      <path d="M52 115l8 13 7-11zM84 120l7 13 8-11zM118 123l7 13 8-11zM152 124l8 13 7-12zM186 123l7 13 8-12zM220 120l7 13 8-11zM254 116l7 12 8-11z" fill="#f2a64a"/>
+      <path d="M68 117l7 13 8-11zM101 122l7 13 8-11zM135 124l7 13 8-12zM169 124l7 13 8-12zM203 122l7 13 8-11zM237 118l7 13 8-11z" fill="#b3191e"/>
+    </g>
+    <!-- note taped to the shutter (closed day) -->
+    <g class="sc-note">
+      <g transform="rotate(-4 160 160)">
+        <rect x="104" y="134" width="112" height="56" rx="2" fill="#fffaf1"/>
+        <rect x="146" y="129" width="28" height="10" fill="#e8d9b5" opacity=".9"/>
+        <text x="160" y="157" text-anchor="middle" font-family="Rozha One, Georgia, serif" font-size="14" fill="#b3191e">Closed today</text>
+        <text id="shutNote" x="160" y="177" text-anchor="middle" font-family="Work Sans, sans-serif" font-size="10" fill="#1f1a17"></text>
+      </g>
+    </g>
+    <!-- step + sleeping cat -->
+    <rect x="40" y="232" width="240" height="10" rx="2" fill="#d8c8aa"/>
+    <g class="sc-cat">
+      <path d="M232 232c0-11 9-17 21-17 10 0 17 6 17 17z" fill="#1f1a17"/>
+      <circle cx="232" cy="226" r="7" fill="#1f1a17"/>
+      <path d="M226 221l1-8 5 5zM234 218l4-7 2 8z" fill="#1f1a17"/>
+      <path d="M270 231c6 0 9-3 7-8" fill="none" stroke="#1f1a17" stroke-width="3" stroke-linecap="round"/>
+      <path d="M229 226q2 1.5 4 0" stroke="#efe3cc" stroke-width="1" fill="none"/>
+      <text class="zz z1" x="236" y="208" font-family="Rozha One, Georgia, serif" font-size="9" fill="#f6ecdb">z</text>
+      <text class="zz z2" x="243" y="200" font-family="Rozha One, Georgia, serif" font-size="12" fill="#f6ecdb">z</text>
+    </g>
+  </svg>
+  <h1 id="shutTitle"></h1>
+  <p class="shut-text" id="shutText"></p>
+  <p class="shut-count" id="shutCount" aria-live="off"></p>
+  <button class="shut-order" id="shutOrder" type="button" hidden></button>
+</section>
 
 <header class="bar">
   <div class="wrap">
@@ -29,13 +119,6 @@
 
 <main class="wrap">
   <div id="banner"></div>
-  <section class="status-card" id="statusCard" aria-live="polite" hidden>
-    <img src="images/logo.jpg" width="150" height="150" alt="">
-    <div>
-      <h2 id="statusTitle"></h2>
-      <p id="statusText"></p>
-    </div>
-  </section>
 
   <!-- 2. menu -->
   <section id="viewMenu" hidden>
@@ -165,6 +248,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=20"></script>
+<script src="order.js?v=21"></script>
 </body>
 </html>

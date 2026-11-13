@@ -42,15 +42,37 @@
     window.scrollTo(0, 0);
     if (name !== 'Done' && poll) { clearInterval(poll); poll = null; }
   }
-  // Opening soon / closed for today / closed day: a card at the top. The menu stays open to browse.
+  // Closed (opening soon / closed for today / closed day): the page shows only the shut shopfront, its message and
+  // a countdown to opening. Someone with an order on its way can still open it.
+  var lastStatus = null, peeking = false, countTimer = null;
   function showStatus(st) {
-    var card = $('statusCard');
-    card.hidden = !st || st.open;
-    if (card.hidden) return;
-    card.dataset.state = st.state;
-    $('statusTitle').textContent = st.title;
-    $('statusText').textContent = st.message;
+    if (st) lastStatus = st;
+    st = lastStatus;
+    var closed = !!st && !st.open && !peeking;
+    document.body.classList.toggle('is-closed', closed);
+    $('closedScreen').hidden = !closed;
+    clearInterval(countTimer);
+    if (!closed) return;
+    var scr = $('closedScreen');
+    scr.dataset.state = st.state;
+    $('shutTitle').textContent = st.title;
+    $('shutText').textContent = st.message;
+    $('shutNote').textContent = st.note ? 'for ' + st.note : 'Back soon';
+    var tick = function () {
+      var ms = st.opensAt ? new Date(st.opensAt) - Date.now() : 0;
+      if (ms <= 0) { $('shutCount').textContent = ''; return; }
+      var m = Math.ceil(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+      $('shutCount').textContent = 'Opens in ' + (d >= 1 ? d + (d === 1 ? ' day ' : ' days ') + (h % 24) + ' h' : h ? h + ' h ' + String(m % 60).padStart(2, '0') + ' min' : m + ' min');
+    };
+    tick(); countTimer = setInterval(tick, 30000);
+    var mine = table != null ? recentOrders() : [];
+    $('shutOrder').hidden = !mine.length;
+    if (mine.length) {
+      $('shutOrder').textContent = 'See your order #' + mine[0].id;
+      $('shutOrder').onclick = function () { peeking = true; showStatus(); showOrder(mine[0].id, mine[0].t); };
+    }
   }
+  document.addEventListener('visibilitychange', function () { $('closedScreen').classList.toggle('paused', document.hidden); });
   function banner(kind, text) {
     $('banner').replaceChildren(text ? el('p', { class: 'notice ' + kind, style: 'margin-top:14px', text: text }) : '');
   }
@@ -656,7 +678,7 @@
   api('/api/menu').then(function (m) {
     menu = m;
     m.categories.forEach(function (c) { c.items.forEach(function (i) { items[i.id] = i; }); });
-    showStatus(m.status);
+    setTimeout(function () { showStatus(m.status); }, 0); // after the table / online page has started
     setInterval(function () { api('/api/menu').then(function (x) { menu.open = x.open; showStatus(x.status); }).catch(function () {}); }, 60000);
     if (ONLINE) return startOnline();
     var n = Number(new URLSearchParams(location.search).get('table'));
