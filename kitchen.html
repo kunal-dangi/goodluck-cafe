@@ -140,7 +140,7 @@
     .ap-actions .cancel:hover { border-color: var(--red); color: var(--red); background: transparent; }
     .tile-bill { font-size: .85rem; color: var(--muted); }
     .tile .btn { min-height: 38px; padding: 0 10px; font-size: .88rem; border-radius: 8px; }
-    .tile-actions { display: flex; gap: 6px; }
+    .tile-actions { display: flex; flex-direction: column; gap: 6px; }
     .tile-actions .btn { flex: 1; }
     .tile .ghost { background: transparent; color: var(--muted); border-color: var(--line); }
     .tile .ghost:hover { color: var(--red); border-color: var(--red); background: transparent; }
@@ -183,7 +183,7 @@
 
 <section class="approvals" id="approvals" aria-labelledby="apTitle" hidden>
   <h2 id="apTitle">Needs your OK</h2>
-  <p>Table orders: the first order from a phone, approve it if someone is sitting at that table. Online orders: call the customer to confirm. Payments: check the cafe's UPI app, then tap Received.</p>
+  <p>Table orders: the first order from a phone, approve it if someone is sitting at that table. Payments: check the cafe's UPI app, then tap Received.</p>
   <div class="approve-list" id="approveList"></div>
 </section>
 
@@ -223,6 +223,6 @@
 </details>
 </div>
 
-<script src="kitchen.js?v=18"></script>
+<script src="kitchen.js?v=20"></script>
 </body>
 </html>

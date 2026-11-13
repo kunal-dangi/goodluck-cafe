@@ -285,8 +285,8 @@
     $('sumFee').textContent = !loc ? 'Share location to see' : fee ? rupees(fee) : 'Free';
     $('cartTotal').textContent = rupees(total() + fee);
     $('payNote').textContent = delivery
-      ? 'Pay by cash or UPI when your food arrives. We\'ll call you to confirm the order before we start cooking.'
-      : 'Pay by cash or UPI when you collect it at the counter. We\'ll call you to confirm the order before we start cooking.';
+      ? 'Your order goes straight to the kitchen. Pay by UPI right away, or in cash when your food arrives.'
+      : 'Your order goes straight to the kitchen. Pay by UPI right away, or in cash when you collect it.';
   }
   function onlineLabel() {
     var btn = $('placeBtn'), needLoc = kind() === 'delivery' && !loc;
@@ -439,7 +439,7 @@
         else $('payMsg').replaceChildren();
       } else if (u && o.status === 'pending') {
         state.hidden = false;
-        state.textContent = (!o.kind || o.kind === 'table' ? 'Once the cafe accepts your order' : 'Once we confirm your order on the phone') + ', a "Pay with UPI" button appears here.';
+        state.textContent = 'Once the cafe accepts your order, a "Pay with UPI" button appears here.';
       }
     }
     lastClaim[o.id] = !!o.payClaimedAt && !o.paidAt;
@@ -494,8 +494,7 @@
     cancelled: 'This order was cancelled. Please ask at the counter.',
   };
   var ONLINE_TEXT = {
-    pending: 'Order received. We\'ll call you shortly to confirm it.',
-    new: 'Confirmed! The kitchen will start on it shortly.',
+    new: 'Order received! The kitchen will start on it shortly.',
     preparing: 'The kitchen is preparing your order.',
     readydelivery: 'Ready, and on its way to you.',
     readypickup: 'Ready! Collect it from the counter.',

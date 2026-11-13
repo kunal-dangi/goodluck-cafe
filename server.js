@@ -153,8 +153,7 @@ const q = {
   setStatus: db.prepare('UPDATE orders SET status = ?, updated_at = ? WHERE id = ?'),
   pendingOfSeat: db.prepare(`SELECT * FROM orders WHERE seat_id = ? AND status = 'pending'`),
   insertOnline: db.prepare(`INSERT INTO orders (token, table_no, kind, items, note, name, phone, address, lat, lng, distance_m, fee, total, status, created_at, updated_at)
-                            VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`),
-  pendingOfPhone: db.prepare(`SELECT COUNT(*) n FROM orders WHERE phone = ? AND status = 'pending'`),
+                            VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)`),
   bill: db.prepare(`SELECT COUNT(*) n, COALESCE(SUM(total),0) amount, COALESCE(SUM(CASE WHEN paid_at IS NOT NULL THEN total END),0) paid
                     FROM orders WHERE session_id = ? AND status NOT IN ('cancelled','pending')`),
   setCancelled: db.prepare("UPDATE orders SET status = 'cancelled', cancelled_by = ?, updated_at = ? WHERE id = ?"),
@@ -506,7 +505,8 @@ async function api(req, res, url) {
     if (name.length < 2) return fail(res, 400, 'name', 'Please enter your name.');
     const phone = mobile(body.phone);
     if (!phone) return fail(res, 400, 'phone', 'Please enter a valid 10-digit mobile number. We\'ll call it to confirm your order.');
-    // Fake-order guard: 3 online orders per mobile number and 10 per visitor address per hour; 2 unconfirmed per number.
+    // Fake-order guard: 3 online orders per mobile number and 10 per visitor address per hour. Online orders go straight
+    // to the kitchen (no confirming call); the 10 km check and these limits are what keep pranks out.
     // (The address limit is loose: mobile networks put many people behind one address.)
     const keys = [[`onl:${phone}`, 3], [`onlip:${ip}`, 10]];
     const full = keys.find(([k, max]) => failures(k, 3600e3) >= max);
@@ -515,7 +515,6 @@ async function api(req, res, url) {
       const again = new Date(Math.min(...recent) + 3600e3).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' });
       return fail(res, 429, 'slow-down', `${full[0].startsWith('onl:') ? 'This number has' : 'You\'ve'} placed ${full[1]} orders in the last hour. You can order again after ${again}, or call the cafe.`);
     }
-    if (q.pendingOfPhone.get(phone).n >= 2) return fail(res, 429, 'wait-approval', 'Your earlier order is still waiting to be confirmed. We\'ll call you shortly.');
     const priced = priceItems(body.items);
     if (priced.error) return fail(res, 400, priced.error, priced.message);
 

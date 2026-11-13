@@ -85,9 +85,9 @@
       <input id="name" maxlength="40" autocomplete="name" required>
     </div>
     <div class="field">
-      <label for="phone">Mobile number <span class="req">*</span> <small>(we'll call to confirm)</small></label>
+      <label for="phone">Mobile number <span class="req">*</span> <small>(for the delivery)</small></label>
       <input id="phone" type="tel" inputmode="tel" maxlength="16" autocomplete="tel" placeholder="98XXXXXXXX" required aria-describedby="phoneHint">
-      <p class="field-hint" id="phoneHint">We'll call this number soon to confirm your order, so please check it's correct. If we can't reach you, the order is cancelled.</p>
+      <p class="field-hint" id="phoneHint">Please check it's correct: we call it if we need directions or have a question about your order.</p>
     </div>
     <div class="field">
       <label for="note">Note for the kitchen <small>(optional)</small></label>
@@ -99,7 +99,7 @@
       <div id="sumFeeRow"><span>Delivery</span><span class="money" id="sumFee"></span></div>
     </div>
     <div class="totals"><span>Total</span><span class="money" id="cartTotal"></span></div>
-    <p class="notice info pay-note" id="payNote">Pay by cash or UPI when your food arrives. We'll call you to confirm the order before we start cooking.</p>
+    <p class="notice info pay-note" id="payNote">Your order goes straight to the kitchen. Pay by UPI right away, or in cash when your food arrives.</p>
     <div id="cartError"></div>
     <button class="btn place" id="placeBtn" type="button">Place order</button>
   </section>
@@ -111,7 +111,7 @@
       <div class="num serif" id="doneNum"></div>
       <p id="doneTable"></p>
       <ol class="steps" id="steps">
-        <li data-s="new">Confirmed</li><li data-s="preparing">Preparing</li><li data-s="ready" id="stepReady">On the way</li><li data-s="served" id="stepDone">Delivered</li>
+        <li data-s="new">Received</li><li data-s="preparing">Preparing</li><li data-s="ready" id="stepReady">On the way</li><li data-s="served" id="stepDone">Delivered</li>
       </ol>
       <p class="status-line" id="statusLine" aria-live="polite"></p>
     </div>
@@ -165,6 +165,6 @@
   <button class="btn" type="button" data-go="cart"><span><span class="count" id="barCount"></span></span><span>View order · <span class="money" id="barTotal"></span></span></button>
 </div>
 
-<script src="order.js?v=19"></script>
+<script src="order.js?v=20"></script>
 </body>
 </html>

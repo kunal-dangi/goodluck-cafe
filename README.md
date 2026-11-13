@@ -95,9 +95,9 @@ On the cafe computer, open `http://localhost:8081/tables.html`. The address on t
 - **Where:** the website's **Order online** buttons open `online.html`.
 - **Delivery area:** delivery is only for customers within **10 km** of the cafe. The customer taps "Use my location", and the server measures the distance itself.
 - **Delivery charge:** free up to 3 km, ₹20 up to 6 km, ₹40 up to 10 km. Pickup is free and needs no location.
-- **Payment:** cash or UPI on delivery, or at pickup.
-- **Confirming:** every online order shows under **Needs your OK** with the customer's number, address and a map link. Call them to confirm, then tap **Confirmed on call** to send it to the kitchen, or **Reject** if it's fake.
-- **Limits:** 3 orders per mobile number per hour, at most 2 waiting to be confirmed per number.
+- **Payment:** UPI right away from the order screen, or cash on delivery / at pickup.
+- **Straight to the kitchen:** online orders appear under **New** at once, with the customer's name, tap-to-call number, address and a map link. No confirming call. If one looks fake, tap **Cancel** on it.
+- **Limits:** 3 orders per mobile number per hour, 10 per visitor per hour.
 - **To change the 10 km area or the charges:** edit `DELIVERY` near the top of `server.js`. The cafe's map position is stored there too.
 
 **Going live:** the website is hosted separately on GitHub Pages, so change its two **Order online** links in `index.html` (they have `data-order-link`) from `online.html` to the full address, for example `https://order.goodluckcafe.in/online.html`.
@@ -144,7 +144,7 @@ Without `UPI_ID` there's no UPI button, and customers pay in cash or UPI at the 
 | Staff login | A password stored only as a scrambled hash. 5 wrong tries locks logins for 15 minutes. Logins last 12 hours. |
 | Table lock + approval | Phones join a table only in the 10 minutes after it's turned on. Each phone's first order needs the receptionist's OK. |
 | Location check (tables) | A phone must share its location and be within about 150 m of the cafe to order from a table. Someone at home with a photo of the QR code is told how far away they are and pointed to "Order online". The receptionist sees "Location checked · 24 m from the cafe" on the approval card. |
-| Online orders | The server checks the distance itself (10 km). Every order needs a confirming phone call. There are limits per mobile number and per visitor. |
+| Online orders | The server checks the distance itself (10 km). There are limits per mobile number and per visitor. |
 | Prices | Always taken from `menu.json` on the server. A phone can't change a price or a delivery charge. |
 | Customer data | Names, numbers, addresses, locations and notes are erased after 30 days (`PRIVACY_DAYS`). Totals are kept for the accounts. The data folder can only be read by the computer user who runs the server. |
 | Activity log | Every login, approval, rejection, cancellation and table on/off is recorded. See **Activity log** at the bottom of the staff screen. It's kept for 90 days. |

@@ -38,7 +38,9 @@ R=$(online 12); ID=$(echo $R | field '["id"]'); TK=$(echo $R | field '["token"]'
 check "wrong token can't cancel"                                               404 $(code -X POST $J -d '{}' "$B/api/orders/$ID/cancel?t=nope")
 check "customer cancels"                                                       "cancelled customer" "$(body -X POST $J -d '{}' "$B/api/orders/$ID/cancel?t=$TK" | field '["status"],d["cancelledBy"]')"
 R=$(online 13); ID=$(echo $R | field '["id"]'); TK=$(echo $R | field '["token"]')
-code -b $ST -X POST $SB/api/kitchen/orders/$ID/approve >/dev/null
+check "online order goes straight to the kitchen (no call)"                     new $(echo $R | field '["status"]')
+check "UPI can be paid straight away"                                          True $(body -X POST $J -d '{}' "$B/api/orders/$ID/paid?t=$TK" | field '["payClaimedAt"] is not None')
+body -b $ST -X POST $J -d '{"result":"not-received"}' $SB/api/kitchen/orders/$ID/payment >/dev/null
 code -b $ST -X PATCH $J -d '{"status":"preparing"}' $SB/api/kitchen/orders/$ID >/dev/null
 check "too late once the kitchen started"                                      started $(body -X POST $J -d '{}' "$B/api/orders/$ID/cancel?t=$TK" | field '["error"]')
 

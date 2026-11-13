@@ -200,14 +200,13 @@
     var online = isOnline(o);
     return el('article', { class: 'approve' + (online ? ' online' : '') + (fresh ? ' fresh' : '') },
       el('div', { class: 'ap-head' }, el('span', { class: 't-table', text: where(o) }), el('span', { class: 't-meta', 'data-ago': o.createdAt, text: ago(o.createdAt) })),
-      online ? el('p', { class: 'ap-hint', text: 'Call ' + prettyPhone(o.phone) + ' to confirm before cooking.' }) : null,
       !online && o.distanceM != null ? el('p', { class: 'ap-loc', text: 'Location checked · ' + (o.distanceM < 1000 ? o.distanceM + ' m' : (o.distanceM / 1000).toFixed(1) + ' km') + ' from the cafe' }) : null,
       el('div', { class: 'ap-items', text: o.items.map(function (l) { return l.qty + '× ' + l.name; }).join(', ') }),
       o.note ? el('p', { class: 't-note', text: 'Note: ' + o.note }) : null,
       contact(o),
       el('div', { class: 't-foot' }, el('span', { class: 'who', text: online ? '' : o.name ? 'For ' + o.name : 'New phone' }), el('b', { class: 'money', text: rupees(o.total) })),
       el('div', { class: 'ap-actions' },
-        el('button', { class: 'btn ok', type: 'button', onclick: function () { decide(o, 'approve'); } }, online ? 'Confirmed on call' : 'Approve'),
+        el('button', { class: 'btn ok', type: 'button', onclick: function () { decide(o, 'approve'); } }, 'Approve'),
         el('button', { class: 'btn cancel', type: 'button', 'aria-label': 'Reject order ' + o.id + ', ' + whereLong(o), onclick: function (e) {
           twoTap(e.currentTarget, 'Tap again', function () { decide(o, 'reject'); });
         } }, 'Reject')));
