@@ -46,7 +46,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 
@@ -605,6 +605,16 @@
     s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_API_KEY) + '&v=weekly&loading=async&callback=initGoogleReviews';
     s.async = true;
     document.head.appendChild(s);
+  })();
+</script>
+<script>
+  // Hover or tap "chai" and the dot drops in again.
+  (function () {
+    var c = document.querySelector('.chai'), t = c && c.querySelector('.tittle');
+    if (!t || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    function again() { if (t.getAnimations()[0] && t.getAnimations()[0].playState === 'running') return;
+      t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'tittle-drop 1.7s both'; }
+    c.addEventListener('mouseenter', again); c.addEventListener('click', again);
   })();
 </script>
 </body>

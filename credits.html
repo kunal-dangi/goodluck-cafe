@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=15">
   <style>
     .credits { max-width: 760px; margin: 0 auto; padding: 64px 20px 96px; }
     .credits h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin-bottom: 12px; }
@@ -70,5 +70,15 @@
         <small>Changes: resized and converted to WebP for this website; this adapted version is shared under the same licence.</small></div></li>
   </ul>
 </main>
+<script>
+  // Hover or tap "chai" and the dot drops in again.
+  (function () {
+    var c = document.querySelector('.chai'), t = c && c.querySelector('.tittle');
+    if (!t || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    function again() { if (t.getAnimations()[0] && t.getAnimations()[0].playState === 'running') return;
+      t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'tittle-drop 1.7s both'; }
+    c.addEventListener('mouseenter', again); c.addEventListener('click', again);
+  })();
+</script>
 </body>
 </html>
