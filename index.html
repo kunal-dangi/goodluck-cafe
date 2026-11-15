@@ -59,7 +59,7 @@
 
 <header class="top">
   <div class="wrap">
-    <a href="#" class="logo"><img src="images/logo.jpg" width="150" height="150" alt=""><span class="logo-text">Good Luck <span>Cafe</span></span></a>
+    <a href="./" class="logo" aria-label="Good Luck Cafe, home"><img src="images/logo.jpg" width="150" height="150" alt=""><span class="logo-text">Good Luck <span>Cafe</span></span></a>
     <nav>
       <a href="#menu">Menu</a>
       <a href="#about">About</a>
@@ -443,7 +443,7 @@
 <footer>
   <div class="wrap foot-grid">
     <div>
-      <p class="logo"><img src="images/logo.jpg" width="150" height="150" loading="lazy" alt=""><span class="logo-text">Good Luck <span>Cafe</span></span></p>
+      <a href="./" class="logo" aria-label="Good Luck Cafe, home"><img src="images/logo.jpg" width="150" height="150" loading="lazy" alt=""><span class="logo-text">Good Luck <span>Cafe</span></span></a>
       <p>Chai, bun maska and good company in Parande Nagar, Dighi.</p>
     </div>
     <div>
@@ -584,6 +584,21 @@
     s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_API_KEY) + '&v=weekly&loading=async&callback=initGoogleReviews';
     s.async = true;
     document.head.appendChild(s);
+  })();
+</script>
+<script>
+  // Sections ease up as they scroll into view, once. With reduced motion or no JavaScript, everything is simply visible.
+  (function () {
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var els = document.querySelectorAll('.dishes-head, .dish, .about-text, .print, .wall-quote, .reviews > *, .visit-info, .visit-grid > :last-child, .foot-grid > *');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    els.forEach(function (el) {
+      var i = Array.prototype.indexOf.call(el.parentNode.children, el) % 4;
+      el.classList.add('reveal'); el.style.setProperty('--d', i * 110 + 'ms'); io.observe(el);
+    });
+    document.documentElement.classList.add('reveal-on');
   })();
 </script>
 </body>
