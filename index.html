@@ -46,7 +46,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 
@@ -608,13 +608,13 @@
   })();
 </script>
 <script>
-  // Hover or tap "chai" and the dot drops in again.
+  // Hover "chai" (mouse only) and the dot drops in again. Phones see it once.
   (function () {
     var c = document.querySelector('.chai'), t = c && c.querySelector('.tittle');
-    if (!t || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!t || !matchMedia('(hover: hover) and (min-width: 701px)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     function again() { if (t.getAnimations()[0] && t.getAnimations()[0].playState === 'running') return;
       t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'tittle-drop 1.7s both'; }
-    c.addEventListener('mouseenter', again); c.addEventListener('click', again);
+    c.addEventListener('mouseenter', again);
   })();
 </script>
 </body>
