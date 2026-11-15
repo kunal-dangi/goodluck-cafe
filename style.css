@@ -399,9 +399,15 @@ nav a:hover::after, nav a:focus-visible::after { transform: scaleX(1); }
   font-family: var(--display); font-weight: 600; font-size: 1.02rem; line-height: 1.2; box-shadow: 0 4px 12px rgba(0,0,0,.18); }
 .dish figcaption span { display: block; font-family: var(--body); font-size: .78rem; font-weight: 500; color: var(--muted); }
 .dish.wide figcaption { font-size: 1.3rem; }
+.dish-credit { margin-top: 18px; text-align: center; font-size: .82rem; color: var(--muted); }
+.dish-credit a { color: inherit; text-underline-offset: .2em; }
+.dish-credit a:hover { color: var(--red); }
 @media (max-width: 860px) {
   .dish-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 190px; gap: 10px; }
   .dishes { padding: 72px 0 64px; }
+  .dish::after { inset: 6px; }
+  .dish figcaption { left: 12px; right: 12px; bottom: 12px; width: fit-content; max-width: calc(100% - 24px); padding: 5px 10px 6px; font-size: .86rem; }
+  .dish.wide figcaption { font-size: 1.1rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
