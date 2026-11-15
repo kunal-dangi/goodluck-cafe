@@ -537,53 +537,52 @@
 </script>
 
 <script>
-  // Live Google rating + reviews. Fill both values to switch it on.
+  // Live Google rating + reviews, loaded in the visitor's browser from Google (Places API).
+  // Switch on by running ./set-google-key.sh <key> in the cafe folder (see HOW-TO-RUN.md).
   // Until then the numbers and quotes written in the page above are shown.
-  var GOOGLE_API_KEY = '';  // Maps JavaScript API key, restricted to this website
-  var GOOGLE_PLACE_ID = ''; // e.g. ChIJ...
-
-  function showGoogleReviews(p) {
-    var r = p.rating, n = p.userRatingCount;
-    if (!r) return;
+  var GOOGLE_API_KEY = '';
+  (function () {
+    var CACHE = 'glc-google-v1', TTL = 6 * 3600e3; // each visitor asks Google at most every 6 hours
     function set(key, fn) { document.querySelectorAll('[data-g="' + key + '"]').forEach(fn); }
-    set('rating', function (el) { el.textContent = r.toFixed(1); });
-    set('count', function (el) { el.textContent = n; });
-    set('stars', function (el) { el.style.setProperty('--r', r); });
-    if (p.googleMapsURI) set('link', function (el) { el.href = p.googleMapsURI; });
-    if (GOOGLE_PLACE_ID) set('write', function (el) { el.href = 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(GOOGLE_PLACE_ID); });
-
-    // Up to 2 recent 4★+ reviews with text. Review text is untrusted: textContent only.
-    var picks = (p.reviews || []).filter(function (v) { return v.rating >= 4 && v.text; }).slice(0, 2);
-    var slots = document.querySelectorAll('[data-g="review"]');
-    picks.forEach(function (v, i) {
-      var text = v.text.length > 180 ? v.text.slice(0, 177).trim() + '…' : v.text;
-      var q = slots[i];
-      q.querySelector('p').textContent = '“' + text + '”';
-      var cite = q.querySelector('cite');
-      cite.textContent = '';
-      var who = document.createElement('a');
-      var author = v.authorAttribution || {};
-      who.textContent = author.displayName || 'Google user';
-      if (author.uri) { who.href = author.uri; who.target = '_blank'; who.rel = 'noopener'; }
-      cite.append(who, ' · ' + v.rating + '/5' + (v.relativePublishTimeDescription ? ' · ' + v.relativePublishTimeDescription : ''));
-    });
-  }
-
-  window.initGoogleReviews = async function () {
-    try {
-      var lib = await google.maps.importLibrary('places');
-      var place = new lib.Place({ id: GOOGLE_PLACE_ID, requestedLanguage: 'en' });
-      await place.fetchFields({ fields: ['rating', 'userRatingCount', 'reviews', 'googleMapsURI'] });
-      showGoogleReviews(place);
-    } catch (e) { /* keep the static reviews */ }
-  };
-
-  if (GOOGLE_API_KEY && GOOGLE_PLACE_ID) {
+    function show(p) {
+      set('rating', function (el) { el.textContent = p.rating.toFixed(1); });
+      set('count', function (el) { el.textContent = p.count; });
+      set('stars', function (el) { el.style.setProperty('--r', p.rating); });
+      if (p.url) set('link', function (el) { el.href = p.url; });
+      if (p.id) set('write', function (el) { el.href = 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(p.id); });
+      // The newest written reviews, as Google returns them. Review text is untrusted: textContent only.
+      var slots = document.querySelectorAll('[data-g="review"]');
+      p.reviews.slice(0, slots.length).forEach(function (v, i) {
+        var text = v.text.length > 180 ? v.text.slice(0, 177).trim() + '…' : v.text;
+        slots[i].querySelector('p').textContent = '“' + text + '”';
+        var cite = slots[i].querySelector('cite'); cite.textContent = '';
+        var who = document.createElement(v.authorUrl ? 'a' : 'span');
+        who.textContent = v.author || 'Google user';
+        if (v.authorUrl) { who.href = v.authorUrl; who.target = '_blank'; who.rel = 'noopener'; }
+        cite.append(who, ' · ' + v.rating + '★' + (v.when ? ' · ' + v.when : '') + ' · Google');
+      });
+    }
+    try { var c = JSON.parse(localStorage.getItem(CACHE)); if (c && Date.now() - c.at < TTL && c.p) { show(c.p); return; } } catch (e) {}
+    if (!GOOGLE_API_KEY) return;
+    window.initGoogleReviews = async function () {
+      try {
+        var lib = await google.maps.importLibrary('places');
+        var r = await lib.Place.searchByText({ textQuery: 'Goodluck cafe, Parande Nagar, Dighi, Pimpri-Chinchwad', maxResultCount: 1, language: 'en',
+          locationBias: { lat: 18.6195977, lng: 73.8746089 }, fields: ['id', 'rating', 'userRatingCount', 'reviews', 'googleMapsURI'] });
+        var pl = r.places && r.places[0];
+        if (!pl || !pl.rating) return;
+        var p = { id: pl.id, rating: pl.rating, count: pl.userRatingCount, url: pl.googleMapsURI,
+          reviews: (pl.reviews || []).filter(function (v) { return v.text; }).sort(function (a, b) { return (b.publishTime || 0) - (a.publishTime || 0); })
+            .map(function (v) { var a = v.authorAttribution || {}; return { author: a.displayName, authorUrl: a.uri, rating: v.rating, text: String(v.text), when: v.relativePublishTimeDescription }; }) };
+        try { localStorage.setItem(CACHE, JSON.stringify({ at: Date.now(), p: p })); } catch (e) {}
+        show(p);
+      } catch (e) { /* keep the reviews written in the page */ }
+    };
     var s = document.createElement('script');
-    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_API_KEY) + '&loading=async&callback=initGoogleReviews';
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_API_KEY) + '&v=weekly&loading=async&callback=initGoogleReviews';
     s.async = true;
     document.head.appendChild(s);
-  }
+  })();
 </script>
 </body>
 </html>
