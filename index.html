@@ -45,7 +45,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Fraunces:opsz,wght@9..144,500..700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
@@ -74,7 +74,7 @@
   <img class="hero-bg" src="images/storefront.jpg" width="1320" height="810" fetchpriority="high" alt="Good Luck Cafe storefront lit up at night">
   <div class="wrap hero-inner">
     <div class="hero-text">
-      <h1>Hot chai,<br><em>bun maska</em><br>&amp; good company.</h1>
+      <h1>Hot <span class="chai"><span aria-hidden="true">cha<span class="i">ı<span class="tittle"></span></span></span><span class="vh">chai</span></span>,<br><em>bun maska</em><br>&amp; good company.</h1>
       <p class="lead">A cutting chai at six in the morning, kheema pav at lunch, a long gossip over omelettes at night. Pull up a chair.</p>
       <div class="actions">
         <a href="https://annotated-feb-revolutionary-fruits.trycloudflare.com/online.html" class="btn" data-order-link>Order online</a>
@@ -605,21 +605,6 @@
     s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(GOOGLE_API_KEY) + '&v=weekly&loading=async&callback=initGoogleReviews';
     s.async = true;
     document.head.appendChild(s);
-  })();
-</script>
-<script>
-  // Sections ease up as they scroll into view, once. With reduced motion or no JavaScript, everything is simply visible.
-  (function () {
-    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var els = document.querySelectorAll('.dishes-head, .dish, .about-text, .print, .wall-quote, .reviews > *, .visit-info, .visit-grid > :last-child, .foot-grid > *');
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
-    els.forEach(function (el) {
-      var i = Array.prototype.indexOf.call(el.parentNode.children, el) % 4;
-      el.classList.add('reveal'); el.style.setProperty('--d', i * 110 + 'ms'); io.observe(el);
-    });
-    document.documentElement.classList.add('reveal-on');
   })();
 </script>
 </body>

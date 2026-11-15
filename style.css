@@ -1,5 +1,5 @@
 :root {
-  --display: "Fraunces", Georgia, serif; --body: "DM Sans", system-ui, sans-serif;
+  --display: "Reddit Sans", system-ui, sans-serif; --body: "Reddit Sans", system-ui, sans-serif;
   --red: #b3191e;
   --red-dark: #8c1216;
   --cream: #f7f0e3;
@@ -339,10 +339,10 @@ footer a:hover { color: #fff; }
   .btn { transition: none; }
 }
 
-/* Type: Fraunces for headings, DM Sans for text (same pair as the order pages and reception). */
-h1, h2, .logo, .big, .bill-head, .sb-hours { font-weight: 650; letter-spacing: -.015em; }
-.cat h3, .about-text .rules-title, .wall-quote blockquote { font-weight: 600; }
-.reviews blockquote p { font-weight: 500; }
+/* Type: Reddit Sans throughout; headings heavy and tight. */
+h1, h2, .logo, .big, .bill-head, .sb-hours { font-weight: 800; letter-spacing: -.03em; }
+.cat h3, .about-text .rules-title, .wall-quote blockquote { font-weight: 750; letter-spacing: -.01em; }
+.reviews blockquote p { font-weight: 600; letter-spacing: -.01em; }
 
 /* ---------- Royal touches + quiet motion ---------- */
 :root { --gold: #a87f32; --ease-royal: cubic-bezier(.16, 1, .3, 1); }
@@ -369,16 +369,7 @@ nav a:hover::after, nav a:focus-visible::after { transform: scaleX(1); }
 /* the opening-hours signboard gets a brass inner line */
 .signboard { box-shadow: inset 0 0 0 2px rgba(255,248,236,.85), inset 0 0 0 5px var(--red), inset 0 0 0 6px rgba(216,180,106,.9); }
 
-/* hero: the headline, text and buttons rise in, one after another */
-@keyframes rise { from { opacity: 0; translate: 0 18px; } }
-.hero-text > * { animation: rise 1.1s var(--ease-royal) both; }
-.hero-text > :nth-child(2) { animation-delay: .14s; }
-.hero-text > :nth-child(3) { animation-delay: .28s; }
-.hero-text > :nth-child(4) { animation-delay: .42s; }
 
-/* sections ease up as they scroll into view (only when JavaScript runs; otherwise everything is simply there) */
-.reveal-on .reveal { opacity: 0; translate: 0 24px; transition: opacity 1s var(--ease-royal) var(--d, 0ms), translate 1s var(--ease-royal) var(--d, 0ms); }
-.reveal-on .reveal.in { opacity: 1; translate: 0 0; }
 
 /* buttons lift a touch */
 .btn { transition: background-color .2s, color .2s, border-color .2s, translate .3s var(--ease-royal), box-shadow .3s; }
@@ -411,8 +402,27 @@ nav a:hover::after, nav a:focus-visible::after { transform: scaleX(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-text > * { animation: none; }
-  .reveal-on .reveal { opacity: 1; translate: none; transition: none; }
   .logo img, nav a::after, .dish img, .dish::after { transition: none; }
   .btn:hover { translate: none; }
 }
+
+/* ---------- The dot on the "i" of chai: falls in, bounces three times, settles ---------- */
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.chai .i { position: relative; display: inline-block; }
+.chai .tittle {
+  position: absolute; left: var(--tx, 50%); top: var(--ty, .03em); width: var(--ts, .19em); height: var(--ts, .19em);
+  margin-left: calc(var(--ts, .19em) / -2); border-radius: 50%; background: currentColor;
+  transform-origin: 50% 100%; animation: tittle-drop 1.7s .35s both;
+}
+@keyframes tittle-drop {
+  0%   { transform: translateY(-3.4em); opacity: 0; animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  6%   { opacity: 1; }
+  36%  { transform: translateY(0) scale(1.18, .78); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
+  52%  { transform: translateY(-.95em) scale(.95, 1.06); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  67%  { transform: translateY(0) scale(1.1, .88); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
+  78%  { transform: translateY(-.38em); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  88%  { transform: translateY(0) scale(1.05, .94); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
+  94%  { transform: translateY(-.1em); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .chai .tittle { animation: none; } }
