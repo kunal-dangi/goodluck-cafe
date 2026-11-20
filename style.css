@@ -406,47 +406,86 @@ nav a:hover::after, nav a:focus-visible::after { transform: scaleX(1); }
   .btn:hover { translate: none; }
 }
 
-/* ---------- The dot on the "i" of chai: drops in, bounces, then the chai steams ---------- */
+/* ---------- The dot on the "i" of chai: emerges from the comma, arches over, and lands ---------- */
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.chai { cursor: default; }
+.chai { cursor: default; display: inline; }
 .chai .i { position: relative; display: inline-block; }
+.chai .comma {
+  display: inline-block;
+  position: relative;
+  transform-origin: 35% 35%;
+  animation: comma-flick 1.35s .3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes comma-flick {
+  0%   { transform: scale(1) rotate(0deg); }
+  12%  { transform: scale(0.92, 1.06) rotate(-10deg); }
+  22%  { transform: scale(1.08, 0.94) rotate(6deg); }
+  38%  { transform: scale(0.98, 1.02) rotate(-2deg); }
+  54%  { transform: scale(1) rotate(0deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
 .chai .tittle {
   position: absolute; left: 50%; top: .03em; width: .19em; height: .19em; margin-left: -.095em;
-  border-radius: 50%; background: currentColor; transform-origin: 50% 100%; animation: tittle-drop 1.7s .35s both;
+  border-radius: 50%; background: currentColor; transform-origin: 50% 100%;
+  animation: tittle-from-comma 1.35s .3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
-@keyframes tittle-drop {
-  0%   { transform: translateY(-3.4em); opacity: 0; animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
-  6%   { opacity: 1; }
-  36%  { transform: translateY(0) scale(1.22, .74); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
-  52%  { transform: translateY(-.95em) scale(.94, 1.08); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
-  67%  { transform: translateY(0) scale(1.12, .86); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
-  78%  { transform: translateY(-.38em); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
-  88%  { transform: translateY(0) scale(1.05, .94); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
-  94%  { transform: translateY(-.1em); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+
+@keyframes tittle-from-comma {
+  0% {
+    opacity: 0;
+    transform: translate(0.22em, 0.17em) scale(0.25);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(0.22em, 0.15em) scale(0.7, 0.85) rotate(-15deg);
+  }
+  26% {
+    transform: translate(0.14em, -0.42em) scale(0.88, 1.14) rotate(-25deg);
+  }
+  44% {
+    transform: translate(0.04em, -0.65em) scale(1.12, 0.92) rotate(-5deg);
+  }
+  62% {
+    transform: translate(-0.01em, -0.22em) scale(0.88, 1.12) rotate(8deg);
+  }
+  76% {
+    transform: translate(0, 0) scale(1.28, 0.76) rotate(0deg);
+  }
+  85% {
+    transform: translate(0, -0.12em) scale(0.92, 1.08);
+  }
+  93% {
+    transform: translate(0, 0) scale(1.06, 0.95);
+  }
+  100% {
+    transform: translate(0, 0) scale(1, 1);
+    opacity: 1;
+  }
 }
-/* two thin wisps of steam rise off the dot once it has settled, twice, then rest: it is hot chai */
+
+/* Two thin wisps of steam rise off the dot once it has settled: it is hot chai */
 .chai .i::before, .chai .i::after {
   content: ""; position: absolute; bottom: 84%; left: 50%; width: .2em; height: .78em; margin-left: -.24em;
   background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 60'%3E%3Cpath d='M10 58c-7-8 7-14 0-24s7-16 0-32' fill='none' stroke='%23000' stroke-width='4.2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 60'%3E%3Cpath d='M10 58c-7-8 7-14 0-24s7-16 0-32' fill='none' stroke='%23000' stroke-width='4.2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
-  opacity: 0; pointer-events: none; animation: steam 3.6s 2.1s ease-out 2 both;
+  opacity: 0; pointer-events: none; animation: steam 3.2s 1.7s ease-out 2 both;
 }
-.chai .i::after { margin-left: .02em; height: .62em; animation-delay: 3.3s; animation-duration: 3.9s; }
+.chai .i::after { margin-left: .02em; height: .62em; animation-delay: 2.7s; animation-duration: 3.5s; }
 @keyframes steam {
   0%   { opacity: 0; transform: translateY(.18em) scaleY(.5); filter: blur(0); }
   30%  { opacity: .7; }
   100% { opacity: 0; transform: translateY(-.4em) scaleY(1.15) skewX(-8deg); filter: blur(1.5px); }
 }
-@keyframes tittle-drop-soft {
-  0%   { transform: translateY(-2.4em); opacity: 0; animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
-  10%  { opacity: 1; }
-  60%  { transform: translateY(0) scale(1.15, .82); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
-  80%  { transform: translateY(-.28em); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
-}
+
 @media (hover: none), (max-width: 700px) {
-  .chai .tittle { animation: tittle-drop-soft 1s .3s both; }
-  .chai .i::before, .chai .i::after { animation-iteration-count: 1; animation-delay: 1.4s; }
-  .chai .i::after { animation-delay: 2.2s; }
+  .chai .comma { animation: comma-flick 1.15s .25s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+  .chai .tittle { animation: tittle-from-comma 1.15s .25s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+  .chai .i::before, .chai .i::after { animation-iteration-count: 1; animation-delay: 1.5s; }
+  .chai .i::after { animation-delay: 2.3s; }
 }
-@media (prefers-reduced-motion: reduce) { .chai .tittle, .chai .i::before, .chai .i::after { animation: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .chai .tittle, .chai .comma { animation: none; transform: none; opacity: 1; }
+  .chai .i::before, .chai .i::after { display: none; }
+}
