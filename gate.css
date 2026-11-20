@@ -171,23 +171,34 @@
 @media (max-width: 860px) {
   .gate-body {
     grid-template-columns: 1fr;
-    gap: 32px;
-    padding: 48px 0 40px;
+    gap: 20px;
+    padding: 24px 0 28px;
   }
   .gate-illustration {
     order: -1;
   }
   .gate-illustration svg {
-    max-width: 220px;
+    max-width: 170px;
+  }
+  .gate-text h1 {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+  }
+  .gate-text p {
+    font-size: 1rem;
+    margin-bottom: 12px;
   }
   .gate-btn {
     width: 100%;
-    min-height: 52px;
+    min-height: 48px;
+    padding: 12px 20px;
     justify-content: center;
   }
   .gate-actions {
     flex-direction: column;
     width: 100%;
+    gap: 10px;
+    margin-top: 18px;
   }
 }
 
