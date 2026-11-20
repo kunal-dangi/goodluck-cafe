@@ -13,14 +13,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=17">
-  <link rel="stylesheet" href="gate.css?v=2">
+  <link rel="stylesheet" href="gate.css?v=3">
 </head>
 <body>
 
 <div class="infobar">
   <div class="wrap">
     <span>Good Luck Cafe · Dighi, Pune</span>
-    <span>Goodluckcafe.dighi@gmail.com</span>
+    <span class="hide-sm">Goodluckcafe.dighi@gmail.com</span>
   </div>
 </div>
 
@@ -36,11 +36,64 @@
 </header>
 
 <main class="gate">
-  <div class="wrap gate-body">
-    <div class="gate-text">
+  <div class="gate-container">
+
+    <div class="gate-card">
+      <!-- Handcrafted Storefront SVG with Repeating Gentle Sway & Chai Steam -->
+      <div class="gate-illustration" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 270" fill="none">
+          <!-- Background Wall subtle frame -->
+          <rect x="25" y="65" width="210" height="195" rx="4" fill="#fffdf9" stroke="#1f1a17" stroke-width="1.5"/>
+          
+          <!-- Red & Cream Cafe Awning -->
+          <path d="M15 65 L130 22 L245 65 Z" fill="#b3191e" stroke="#8c1216" stroke-width="1.5"/>
+          <!-- Scallop Valance -->
+          <path d="M15 65 Q30 78 45 65 Q60 78 75 65 Q90 78 105 65 Q120 78 135 65 Q150 78 165 65 Q180 78 195 65 Q210 78 225 65 Q235 78 245 65" stroke="#8c1216" stroke-width="1.4" fill="#fffaf1"/>
+          
+          <!-- Storefront Shutters (Left Window) -->
+          <rect x="42" y="92" width="76" height="120" rx="2" fill="#faf4e8" stroke="#6b5f55" stroke-width="1.5"/>
+          <line x1="42" y1="107" x2="118" y2="107" stroke="#6b5f55" stroke-width="1"/>
+          <line x1="42" y1="122" x2="118" y2="122" stroke="#6b5f55" stroke-width="1"/>
+          <line x1="42" y1="137" x2="118" y2="137" stroke="#6b5f55" stroke-width="1"/>
+          <line x1="42" y1="152" x2="118" y2="152" stroke="#6b5f55" stroke-width="1"/>
+          <line x1="42" y1="167" x2="118" y2="167" stroke="#6b5f55" stroke-width="1"/>
+          <line x1="42" y1="182" x2="118" y2="182" stroke="#6b5f55" stroke-width="1"/>
+          <line x1="42" y1="197" x2="118" y2="197" stroke="#6b5f55" stroke-width="1"/>
+
+          <!-- Storefront Door (Right) with warm brass handle -->
+          <rect x="136" y="125" width="80" height="135" rx="2" fill="#faf4e8" stroke="#6b5f55" stroke-width="1.5"/>
+          <rect x="144" y="133" width="28" height="32" rx="1" fill="#fff" stroke="#6b5f55" stroke-width="0.8"/>
+          <rect x="180" y="133" width="28" height="32" rx="1" fill="#fff" stroke="#6b5f55" stroke-width="0.8"/>
+          <rect x="144" y="173" width="28" height="32" rx="1" fill="#fff" stroke="#6b5f55" stroke-width="0.8"/>
+          <rect x="180" y="173" width="28" height="32" rx="1" fill="#fff" stroke="#6b5f55" stroke-width="0.8"/>
+          <circle cx="206" cy="192" r="3" fill="#a87f32"/>
+
+          <!-- Step -->
+          <rect x="32" y="258" width="196" height="10" rx="2" fill="#e2d5bf" stroke="#6b5f55" stroke-width="1.2"/>
+
+          <!-- Chai Glass on the Doorstep Counter -->
+          <g transform="translate(198, 240)">
+            <!-- Glass cup body -->
+            <polygon points="2,8 14,8 12,18 4,18" fill="rgba(247, 240, 227, 0.85)" stroke="#6b5f55" stroke-width="0.8"/>
+            <!-- Tea level -->
+            <polygon points="3.5,11 12.5,11 11.5,17 4.5,17" fill="#b86d29"/>
+            <!-- Chai Steam wisps gently rising -->
+            <path class="tea-steam-1" d="M6,6 Q4,2 7,-3 Q9,-7 7,-10" stroke="#a87f32" stroke-width="1" stroke-linecap="round" fill="none"/>
+            <path class="tea-steam-2" d="M10,6 Q12,2 9,-3 Q7,-7 9,-10" stroke="#a87f32" stroke-width="0.9" stroke-linecap="round" fill="none"/>
+          </g>
+
+          <!-- "back soon" Sign hanging from two strings with gentle breeze sway animation -->
+          <g class="shop-sign">
+            <line x1="88" y1="210" x2="98" y2="222" stroke="#6b5f55" stroke-width="1"/>
+            <line x1="132" y1="210" x2="122" y2="222" stroke="#6b5f55" stroke-width="1"/>
+            <rect x="80" y="222" width="60" height="26" rx="3" fill="#fffaf1" stroke="#a87f32" stroke-width="1.2"/>
+            <text x="110" y="238" text-anchor="middle" font-family="'Reddit Sans', sans-serif" font-size="9.5" fill="#1f1a17" font-weight="700" letter-spacing="0.02em">back soon</text>
+          </g>
+        </svg>
+      </div>
 
       <!-- Checking state: skeleton bars -->
-      <div id="state-checking" class="gate-state active">
+      <div id="state-checking" class="gate-state">
         <span class="skel-line skel-line--title" aria-hidden="true"></span>
         <span class="skel-line skel-line--body1" aria-hidden="true"></span>
         <span class="skel-line skel-line--body2" aria-hidden="true"></span>
@@ -49,74 +102,46 @@
       </div>
 
       <!-- Forwarding state -->
-      <div id="state-forwarding" class="gate-state gate-forwarding">
+      <div id="state-forwarding" class="gate-state">
         <h1>Opening the menu</h1>
         <p class="gate-status">Redirecting you to online ordering&#x2026;</p>
       </div>
 
       <!-- Down state -->
-      <div id="state-down" class="gate-state">
+      <div id="state-down" class="gate-state active">
         <h1>Online ordering is paused for now.</h1>
-        <p>Our ordering system has a technical problem. We're fixing it and it will be back soon. You can still reach us by email at <strong>Goodluckcafe.dighi@gmail.com</strong>.</p>
+        <p>Our ordering system has a technical problem. We're fixing it and it will be back soon. You can still reach us by email.</p>
+        
+        <div class="gate-email-box">
+          <span class="gate-email-label">Email the cafe</span>
+          <a href="mailto:Goodluckcafe.dighi@gmail.com" class="gate-email-value">Goodluckcafe.dighi@gmail.com</a>
+        </div>
+
         <p id="gate-error" class="gate-error" aria-live="polite"></p>
-        <p id="gate-status" class="gate-status" aria-live="polite"></p>
+
+        <div class="gate-status-row">
+          <span class="status-pulse" aria-hidden="true"></span>
+          <span id="gate-status" class="gate-status" aria-live="polite">Checking again in 15 seconds</span>
+        </div>
+
         <div class="gate-actions">
-          <a href="mailto:Goodluckcafe.dighi@gmail.com" class="gate-btn">
+          <a href="mailto:Goodluckcafe.dighi@gmail.com" class="gate-btn gate-btn--primary">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            Email Goodluckcafe.dighi@gmail.com
+            Email the cafe
           </a>
-          <button type="button" id="check-again" class="gate-btn gate-btn--tertiary">Check again</button>
+          <button type="button" id="check-again" class="gate-btn gate-btn--secondary">Check again</button>
         </div>
       </div>
 
     </div>
 
-    <!-- Illustration: shuttered shopfront with "back soon" sign -->
-    <div class="gate-illustration" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 340" fill="none">
-        <!-- Shopfront body -->
-        <rect x="30" y="80" width="240" height="220" rx="4" fill="#fffaf1" stroke="#1f1a17" stroke-width="1.5"/>
-        <!-- Awning -->
-        <path d="M20 80 L150 30 L280 80 Z" fill="#b3191e" stroke="#8c1216" stroke-width="1.5"/>
-        <line x1="20" y1="80" x2="280" y2="80" stroke="#8c1216" stroke-width="1.5"/>
-        <!-- Awning scallops -->
-        <path d="M30 80 Q55 100 80 80 Q105 100 130 80 Q155 100 180 80 Q205 100 230 80 Q255 100 270 80" stroke="#8c1216" stroke-width="1.2" fill="none"/>
-        <!-- Shutters -->
-        <rect x="50" y="110" width="90" height="140" rx="2" fill="none" stroke="#6b5f55" stroke-width="1.5"/>
-        <line x1="50" y1="125" x2="140" y2="125" stroke="#6b5f55" stroke-width="1"/>
-        <line x1="50" y1="140" x2="140" y2="140" stroke="#6b5f55" stroke-width="1"/>
-        <line x1="50" y1="155" x2="140" y2="155" stroke="#6b5f55" stroke-width="1"/>
-        <line x1="50" y1="170" x2="140" y2="170" stroke="#6b5f55" stroke-width="1"/>
-        <line x1="50" y1="185" x2="140" y2="185" stroke="#6b5f55" stroke-width="1"/>
-        <line x1="50" y1="200" x2="140" y2="200" stroke="#6b5f55" stroke-width="1"/>
-        <line x1="50" y1="215" x2="140" y2="215" stroke="#6b5f55" stroke-width="1"/>
-        <line x1="50" y1="230" x2="140" y2="230" stroke="#6b5f55" stroke-width="1"/>
-        <!-- Door -->
-        <rect x="160" y="150" width="90" height="100" rx="2" fill="none" stroke="#6b5f55" stroke-width="1.5"/>
-        <circle cx="240" cy="200" r="3" fill="#a87f32"/>
-        <!-- Door panels -->
-        <rect x="168" y="158" width="30" height="36" rx="1" fill="none" stroke="#6b5f55" stroke-width="0.8"/>
-        <rect x="212" y="158" width="30" height="36" rx="1" fill="none" stroke="#6b5f55" stroke-width="0.8"/>
-        <rect x="168" y="206" width="30" height="36" rx="1" fill="none" stroke="#6b5f55" stroke-width="0.8"/>
-        <rect x="212" y="206" width="30" height="36" rx="1" fill="none" stroke="#6b5f55" stroke-width="0.8"/>
-        <!-- Step -->
-        <rect x="40" y="300" width="220" height="12" rx="2" fill="#e2d5bf" stroke="#6b5f55" stroke-width="1"/>
-        <!-- Sign hanging from two strings -->
-        <g class="shop-sign">
-          <line x1="80" y1="250" x2="90" y2="260" stroke="#6b5f55" stroke-width="1"/>
-          <line x1="140" y1="250" x2="130" y2="260" stroke="#6b5f55" stroke-width="1"/>
-          <rect x="78" y="260" width="64" height="28" rx="3" fill="#fffaf1" stroke="#a87f32" stroke-width="1.2"/>
-          <text x="110" y="278" text-anchor="middle" font-family="Georgia, serif" font-size="10" fill="#1f1a17" font-weight="600">back soon</text>
-        </g>
-      </svg>
+    <div class="gate-footer-note">
+      Good Luck Cafe, Parande Nagar, Dighi &middot; Open 06:00&ndash;23:30
     </div>
-  </div>
 
-  <div class="gate-footer">
-    <div class="wrap">Good Luck Cafe, Parande Nagar, Dighi &middot; Open 06:00&ndash;23:30 &middot; Goodluckcafe.dighi@gmail.com</div>
   </div>
 </main>
 
-<script src="gate.js?v=2"></script>
+<script src="gate.js?v=3"></script>
 </body>
 </html>
