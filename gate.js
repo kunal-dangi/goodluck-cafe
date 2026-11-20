@@ -112,10 +112,10 @@
         body: 'A customer just tried to order online and the ordering server is not reachable. Check the reception computer and the tunnel.',
         mode: 'no-cors'
       }).catch(function () {
-        setError('Could not alert reception. Please call the cafe to order.');
+        setError('Could not alert reception. Please email the cafe.');
       });
     } catch (e) {
-      setError('Could not alert reception. Please call the cafe to order.');
+      setError('Could not alert reception. Please email the cafe.');
     }
   }
 
