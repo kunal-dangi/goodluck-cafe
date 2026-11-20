@@ -14,6 +14,7 @@
   var stateForwarding = document.getElementById('state-forwarding');
   var stateDown       = document.getElementById('state-down');
   var statusEl        = document.getElementById('gate-status');
+  var errorEl         = document.getElementById('gate-error');
   var checkAgainBtn   = document.getElementById('check-again');
   var signEl          = document.querySelector('.shop-sign');
 
@@ -33,6 +34,10 @@
 
   function setStatus(text) {
     if (statusEl) statusEl.textContent = text;
+  }
+
+  function setError(text) {
+    if (errorEl) errorEl.textContent = text;
   }
 
   // ---- Settle the sign illustration ----
@@ -106,8 +111,12 @@
         method: 'POST',
         body: 'A customer just tried to order online and the ordering server is not reachable. Check the reception computer and the tunnel.',
         mode: 'no-cors'
+      }).catch(function () {
+        setError('Could not alert reception. Please call the cafe to order.');
       });
-    } catch (e) { /* fire and forget */ }
+    } catch (e) {
+      setError('Could not alert reception. Please call the cafe to order.');
+    }
   }
 
   // ---- Forward the customer ----
@@ -127,7 +136,7 @@
 
   // ---- Main check ----
   function check() {
-    if (checkTimer) { clearInterval(checkTimer); checkTimer = null; }
+    if (checkTimer) { clearTimeout(checkTimer); checkTimer = null; }
     if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
 
     if (!stateDown.classList.contains('active')) {
@@ -142,10 +151,16 @@
       .then(function () {
         // Server is up
         failCount = 0;
+        setError('');
         forward(liveUrl);
       })
-      .catch(function () {
+      .catch(function (err) {
         failCount++;
+        if (err && err.message && err.message.indexOf('live.json') !== -1) {
+          setError('Ordering configuration could not be loaded.');
+        } else {
+          setError('Ordering server is currently unreachable.');
+        }
         if (failCount >= 2) {
           sendAlert();
         }
@@ -187,6 +202,7 @@
       e.preventDefault();
       totalWaited = 0;
       failCount = 0;
+      setStatus('Checking now\u2026');
       check();
     });
   }
