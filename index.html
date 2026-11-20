@@ -46,7 +46,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 
@@ -74,7 +74,7 @@
   <img class="hero-bg" src="images/storefront.jpg" width="1320" height="810" fetchpriority="high" alt="Good Luck Cafe storefront lit up at night">
   <div class="wrap hero-inner">
     <div class="hero-text">
-      <h1>Hot <span class="chai"><span aria-hidden="true">cha<span class="i">ı<span class="tittle"></span></span></span><span class="vh">chai</span></span>,<br><em>bun maska</em><br>&amp; good company.</h1>
+      <h1>Hot <span class="chai"><span aria-hidden="true">cha<span class="i">ı<span class="tittle"></span></span><span class="comma">,</span></span><span class="vh">chai,</span></span><br><em>bun maska</em><br>&amp; good company.</h1>
       <p class="lead">A cutting chai at six in the morning, kheema pav at lunch, a long gossip over omelettes at night. Pull up a chair.</p>
       <div class="actions">
         <a href="order.html" class="btn" data-order-link>Order online</a>
@@ -608,12 +608,20 @@
   })();
 </script>
 <script>
-  // Hover "chai" (mouse only) and the dot drops in again. Phones see it once.
+  // Hover "chai" (mouse only) and the dot leaps from the comma again. Phones see it once.
   (function () {
-    var c = document.querySelector('.chai'), t = c && c.querySelector('.tittle');
+    var c = document.querySelector('.chai');
+    var t = c && c.querySelector('.tittle');
+    var cm = c && c.querySelector('.comma');
     if (!t || !matchMedia('(hover: hover) and (min-width: 701px)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    function again() { if (t.getAnimations()[0] && t.getAnimations()[0].playState === 'running') return;
-      t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'tittle-drop 1.7s both'; }
+    function again() {
+      if (t.getAnimations()[0] && t.getAnimations()[0].playState === 'running') return;
+      t.style.animation = 'none';
+      if (cm) cm.style.animation = 'none';
+      void t.offsetWidth;
+      t.style.animation = 'tittle-from-comma 1.35s cubic-bezier(0.2, 0.8, 0.3, 1) both';
+      if (cm) cm.style.animation = 'comma-flick 1.35s cubic-bezier(0.2, 0.8, 0.3, 1) both';
+    }
     c.addEventListener('mouseenter', again);
   })();
 </script>
