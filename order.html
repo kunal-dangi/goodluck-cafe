@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Reddit+Sans:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=17">
-  <link rel="stylesheet" href="gate.css?v=1">
+  <link rel="stylesheet" href="gate.css?v=2">
 </head>
 <body>
 
@@ -51,13 +51,14 @@
       <!-- Forwarding state -->
       <div id="state-forwarding" class="gate-state gate-forwarding">
         <h1>Opening the menu</h1>
-        <p class="gate-status">Redirecting you now&#x2026;</p>
+        <p class="gate-status">Redirecting you to online ordering&#x2026;</p>
       </div>
 
       <!-- Down state -->
       <div id="state-down" class="gate-state">
         <h1>Online ordering is paused for now.</h1>
-        <p>Our ordering system has a technical problem. We are fixing it and it will be back soon. You can still order by calling the cafe.</p>
+        <p>Our ordering system has a technical problem. We're fixing it and it will be back soon. You can still order by calling the cafe.</p>
+        <p id="gate-error" class="gate-error" aria-live="polite"></p>
         <p id="gate-status" class="gate-status" aria-live="polite"></p>
         <div class="gate-actions">
           <a href="tel:+917030018222" class="gate-btn">
@@ -120,6 +121,6 @@
   </div>
 </main>
 
-<script src="gate.js?v=1"></script>
+<script src="gate.js?v=2"></script>
 </body>
 </html>
